@@ -214,11 +214,16 @@ export default function Home() {
                     <Button variant="ghost" size="sm">
                       <Share2 className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
-                      <Link href={`/messages?recipientId=${opp.alumniId}`}>
-                        <MessageCircle className="mr-2 h-4 w-4" /> Connect
-                      </Link>
-                    </Button>
+                    {user && user.uid !== opp.alumniId && (
+                      <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
+                        <Link href={`/messages?recipientId=${opp.alumniId}`}>
+                          <MessageCircle className="mr-2 h-4 w-4" /> Connect
+                        </Link>
+                      </Button>
+                    )}
+                    {user && user.uid === opp.alumniId && (
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-tighter">Your Post</Badge>
+                    )}
                   </div>
                 </CardFooter>
               </Card>
