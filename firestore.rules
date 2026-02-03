@@ -4,50 +4,24 @@ service cloud.firestore {
 
     /**
      * ALUMNICONNECT SECURITY RULES
-     * 
-     * Core Philosophy:
-     * This ruleset enforces a strict role-based and ownership-based access model for the AlumniConnect platform.
-     * It distinguishes between 'student' and 'alumni' (mentor) roles, ensuring that only mentors can
-     * provide opportunities and only students can post guidance requests.
-     *
-     * Data Structure:
-     * - /users/{userId}: Primary identity and role storage.
-     * - /studentProfiles & /alumniProfiles: Extensions of the user identity, secured by ownership.
-     * - /opportunities: Content created by alumni, publicly viewable, but owner-writable.
-     * - /guidanceRequests: Content created by students, publicly viewable, but owner-writable.
-     * - /conversations/{id}/messages/{id}: Private peer-to-peer communication.
      */
 
-    // --- Helper Functions ---
-
-    /** Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if a document exists and belongs to the current user. Used for updates/deletes. */
     function isExistingOwner(ownerId) {
       return resource != null && isOwner(ownerId);
     }
 
-    /** Retrieves the role of the current user from their user document. */
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for the core User identity.
-     * @path /users/{userId}
-     * @allow (get, list) Authenticated users can facilitate profile discovery and directory listing.
-     * @principle Ownership for writes; authenticated read for platform connectivity.
-     */
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
@@ -55,10 +29,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Profiles specific to students.
-     * @path /studentProfiles/{studentProfileId}
-     */
     match /studentProfiles/{studentProfileId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(request.resource.data.userId) && request.resource.data.id == studentProfileId;
@@ -66,10 +36,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.userId);
     }
 
-    /**
-     * @description Profiles specific to alumni/mentors.
-     * @path /alumniProfiles/{alumniProfileId}
-     */
     match /alumniProfiles/{alumniProfileId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(request.resource.data.userId) && request.resource.data.id == alumniProfileId;
@@ -77,10 +43,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.userId);
     }
 
-    /**
-     * @description Opportunities for internships or jobs.
-     * @path /opportunities/{opportunityId}
-     */
     match /opportunities/{opportunityId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(request.resource.data.alumniId) 
@@ -89,10 +51,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.alumniId);
     }
 
-    /**
-     * @description Guidance requests posted by students seeking help.
-     * @path /guidanceRequests/{guidanceRequestId}
-     */
     match /guidanceRequests/{guidanceRequestId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(request.resource.data.studentId);
@@ -100,16 +58,9 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.studentId);
     }
 
-    /**
-     * @description Private direct messages within a conversation.
-     * @path /conversations/{conversationId}/messages/{messageId}
-     */
     match /conversations/{conversationId}/messages/{messageId} {
-      function isParticipant(data) {
-        return request.auth.uid == data.senderId || request.auth.uid == data.receiverId;
-      }
-      allow get: if isSignedIn() && isParticipant(resource.data);
-      allow list: if isSignedIn();
+      // Allow read if the user is part of the conversation ID (which is a composite of two UIDs)
+      allow read: if isSignedIn() && (conversationId.split('_')[0] == request.auth.uid || conversationId.split('_')[1] == request.auth.uid);
       allow create: if isOwner(request.resource.data.senderId);
       allow update: if false;
       allow delete: if isExistingOwner(resource.data.senderId);

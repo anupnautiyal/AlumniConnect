@@ -20,6 +20,14 @@ function ChatContent() {
   
   const [activeRecipientId, setActiveRecipientId] = useState<string | null>(initialRecipientId);
   const [messageText, setMessageText] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Update active recipient if URL param changes
+  useEffect(() => {
+    if (initialRecipientId) {
+      setActiveRecipientId(initialRecipientId);
+    }
+  }, [initialRecipientId]);
 
   // Get recipient profile if there's an active recipient
   const recipientDocRef = useMemoFirebase(() => {
@@ -44,13 +52,12 @@ function ChatContent() {
   }, [firestore, conversationId]);
   const { data: messages, isLoading: isMessagesLoading } = useCollection(messagesQuery);
 
-  // Recent conversations (Sidebar)
-  // We'll fetch all users who are mentors/alumni to facilitate discovery
-  const alumniQuery = useMemoFirebase(() => {
+  // Users for Sidebar - fetching more users so anyone can find anyone
+  const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']), limit(50));
+    return query(collection(firestore, 'users'), limit(100));
   }, [firestore]);
-  const { data: alumniList, isLoading: isAlumniLoading } = useCollection(alumniQuery);
+  const { data: usersList, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +89,11 @@ function ChatContent() {
     return (f + l).toUpperCase() || '?';
   };
 
+  const filteredUsers = usersList?.filter(u => 
+    u.id !== user?.uid && 
+    (`${u.firstName} ${u.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="container mx-auto py-6 px-4 h-[calc(100vh-80px)] overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border bg-card rounded-xl shadow-lg h-full overflow-hidden">
@@ -91,14 +103,19 @@ function ChatContent() {
             <h2 className="text-xl font-bold mb-4 font-headline">Messages</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9 bg-card" placeholder="Search chats..." />
+              <Input 
+                className="pl-9 bg-card" 
+                placeholder="Find a contact..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
           <ScrollArea className="flex-1">
-            {isAlumniLoading ? (
+            {isUsersLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary/30" /></div>
             ) : (
-              alumniList?.filter(a => a.id !== user?.uid).map((person) => (
+              filteredUsers?.map((person) => (
                 <div 
                   key={person.id} 
                   onClick={() => setActiveRecipientId(person.id)}
@@ -116,15 +133,15 @@ function ChatContent() {
                       <div className="flex justify-between items-center mb-0.5">
                         <span className="font-semibold text-sm truncate">{person.firstName} {person.lastName}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter font-medium">{person.role}</p>
+                      <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter font-medium">{person.role}</p>
                     </div>
                   </div>
                 </div>
               ))
             )}
-            {!isAlumniLoading && (!alumniList || alumniList.length <= 1) && (
+            {!isUsersLoading && (!filteredUsers || filteredUsers.length === 0) && (
               <div className="p-8 text-center text-muted-foreground text-sm">
-                No other members found.
+                No contacts found.
               </div>
             )}
           </ScrollArea>
@@ -138,7 +155,7 @@ function ChatContent() {
                 <MessageSquare className="h-12 w-12 opacity-20" />
               </div>
               <h3 className="text-xl font-bold text-foreground font-headline mb-2">Your Conversations</h3>
-              <p className="max-w-xs mx-auto">Select a mentor or peer from the directory to start building your professional network.</p>
+              <p className="max-w-xs mx-auto">Select a mentor or peer from the sidebar to start building your professional network.</p>
             </div>
           ) : (
             <>
@@ -152,7 +169,7 @@ function ChatContent() {
                     <h3 className="font-bold text-sm leading-none mb-1">{recipientName}</h3>
                     <div className="flex items-center gap-1.5">
                       <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Online</span>
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Active Now</span>
                     </div>
                   </div>
                 </div>
