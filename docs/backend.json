@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -36,159 +37,6 @@
         "role"
       ]
     },
-    "StudentProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "StudentProfile",
-      "type": "object",
-      "description": "Represents a student's profile, extending the basic user information.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Student Profile."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 StudentProfile)"
-        },
-        "major": {
-          "type": "string",
-          "description": "The student's major field of study."
-        },
-        "graduationYear": {
-          "type": "number",
-          "description": "The student's expected graduation year."
-        },
-        "interests": {
-          "type": "array",
-          "description": "List of the student's interests.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "careerAspirations": {
-          "type": "string",
-          "description": "Student's career aspirations."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "major",
-        "graduationYear"
-      ]
-    },
-    "AlumniProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AlumniProfile",
-      "type": "object",
-      "description": "Represents an alumni's profile, extending the basic user information.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Alumni Profile."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 AlumniProfile)"
-        },
-        "experience": {
-          "type": "string",
-          "description": "Description of alumni experience."
-        },
-        "skills": {
-          "type": "array",
-          "description": "List of alumni skills.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "careerPath": {
-          "type": "string",
-          "description": "Alumni's career path."
-        }
-      },
-      "required": [
-        "id",
-        "userId"
-      ]
-    },
-    "Opportunity": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Opportunity",
-      "type": "object",
-      "description": "Represents an opportunity posted by an alumni, such as internships or job openings.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the opportunity."
-        },
-        "alumniId": {
-          "type": "string",
-          "description": "Reference to AlumniProfile. (Relationship: AlumniProfile 1:N Opportunity)"
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the opportunity."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the opportunity."
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of opportunity (e.g., internship, job)."
-        },
-        "datePosted": {
-          "type": "string",
-          "description": "The date when the opportunity was posted.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "alumniId",
-        "title",
-        "description",
-        "type",
-        "datePosted"
-      ]
-    },
-    "ChatMessage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ChatMessage",
-      "type": "object",
-      "description": "Represents a single message in a direct message conversation between users.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the chat message."
-        },
-        "senderId": {
-          "type": "string",
-          "description": "Reference to User who sent the message. (Relationship: User 1:N ChatMessage as Sender)"
-        },
-        "receiverId": {
-          "type": "string",
-          "description": "Reference to User who received the message. (Relationship: User 1:N ChatMessage as Receiver)"
-        },
-        "message": {
-          "type": "string",
-          "description": "The content of the message."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The timestamp of when the message was sent.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "senderId",
-        "receiverId",
-        "message",
-        "timestamp"
-      ]
-    },
     "GuidanceRequest": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GuidanceRequest",
@@ -201,7 +49,7 @@
         },
         "studentId": {
           "type": "string",
-          "description": "Reference to StudentProfile who created the request. (Relationship: StudentProfile 1:N GuidanceRequest)"
+          "description": "Reference to StudentProfile who created the request."
         },
         "title": {
           "type": "string",
@@ -213,12 +61,15 @@
         },
         "category": {
           "type": "string",
-          "description": "The category of guidance (e.g., academics, career)."
+          "description": "The category of guidance."
         },
         "datePosted": {
           "type": "string",
           "description": "The date when the guidance request was posted.",
           "format": "date-time"
+        },
+        "likes": {
+          "type": "number"
         }
       },
       "required": [
@@ -228,6 +79,44 @@
         "description",
         "category",
         "datePosted"
+      ]
+    },
+    "GuidanceReply": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GuidanceReply",
+      "type": "object",
+      "description": "A reply to a guidance request, usually from a mentor or peer.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "authorId": {
+          "type": "string"
+        },
+        "authorName": {
+          "type": "string"
+        },
+        "authorRole": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "requestId",
+        "authorId",
+        "authorName",
+        "content",
+        "timestamp"
       ]
     }
   },
@@ -246,81 +135,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user information including role (student, alumni). Used for authentication and authorization. The user's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/studentProfiles/{studentProfileId}",
-        "definition": {
-          "entityName": "StudentProfile",
-          "schema": {
-            "$ref": "#/backend/entities/StudentProfile"
-          },
-          "description": "Stores student profile information. Each document is linked to a user ID. The studentProfile's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "studentProfileId",
-              "description": "The unique identifier for the student profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/alumniProfiles/{alumniProfileId}",
-        "definition": {
-          "entityName": "AlumniProfile",
-          "schema": {
-            "$ref": "#/backend/entities/AlumniProfile"
-          },
-          "description": "Stores alumni profile information. Each document is linked to a user ID. The alumniProfile's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "alumniProfileId",
-              "description": "The unique identifier for the alumni profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/opportunities/{opportunityId}",
-        "definition": {
-          "entityName": "Opportunity",
-          "schema": {
-            "$ref": "#/backend/entities/Opportunity"
-          },
-          "description": "Stores opportunities posted by alumni. Includes denormalized 'alumniId' for authorization independence.  This allows rules to easily verify the poster of the opportunity. The opportunity's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "opportunityId",
-              "description": "The unique identifier for the opportunity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/conversations/{conversationId}/messages/{messageId}",
-        "definition": {
-          "entityName": "ChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/ChatMessage"
-          },
-          "description": "Stores chat messages between users.  The `conversationId` could be a composite of the two user IDs involved. The message's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "conversationId",
-              "description": "The unique identifier for the conversation (e.g., a composite of user IDs)."
-            },
-            {
-              "name": "messageId",
-              "description": "The unique identifier for the chat message."
-            }
-          ]
+          "description": "Stores user information and roles."
         }
       },
       {
@@ -330,16 +145,33 @@
           "schema": {
             "$ref": "#/backend/entities/GuidanceRequest"
           },
-          "description": "Stores guidance requests from students. Includes denormalized 'studentId' for authorization. The guidanceRequest's `id` is used as the document ID.",
-          "params": [
-            {
-              "name": "guidanceRequestId",
-              "description": "The unique identifier for the guidance request."
-            }
-          ]
+          "description": "Public questions posted by students."
+        }
+      },
+      {
+        "path": "/guidanceRequests/{requestId}/replies/{replyId}",
+        "definition": {
+          "entityName": "GuidanceReply",
+          "schema": {
+            "$ref": "#/backend/entities/GuidanceReply"
+          },
+          "description": "Threaded replies to guidance requests."
+        }
+      },
+      {
+        "path": "/opportunities/{opportunityId}",
+        "definition": {
+          "entityName": "Opportunity",
+          "description": "Job/internship postings."
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "description": "P2P chat messages."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to ensure authorization independence, clarity, and scalability. User roles are stored directly within the `users` collection to avoid complex rule evaluations. Separate collections are used for student and alumni profiles, linked to the user ID to maintain a clear relationship. Opportunities are stored under `/opportunities`, with the `alumniId` denormalized within each opportunity document to allow for independent authorization checks, enabling alumni to create, edit, and delete their own opportunities without needing to access other parts of the database. Direct messages are stored in a `messages` subcollection under a document representing the conversation between two users, ensuring efficient querying and authorization. Guidance requests from students are stored under `/guidanceRequests`, with the `studentId` denormalized, enabling straightforward access and management of requests. This segregation and denormalization strategy enables robust security rules that are easy to understand and maintain, facilitating QAPs by ensuring roles are directly accessible within each document and avoiding complex hierarchical lookups."
+    ]
   }
 }

@@ -1,10 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * ALUMNICONNECT SECURITY RULES
-     */
 
     function isSignedIn() {
       return request.auth != null;
@@ -14,56 +11,35 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(ownerId) {
-      return resource != null && isOwner(ownerId);
-    }
-
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId) && request.resource.data.id == userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    match /studentProfiles/{studentProfileId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(request.resource.data.userId) && request.resource.data.id == studentProfileId;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
-    }
-
-    match /alumniProfiles/{alumniProfileId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(request.resource.data.userId) && request.resource.data.id == alumniProfileId;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
-    }
-
-    match /opportunities/{opportunityId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(request.resource.data.alumniId) 
-                    && (getUserRole() == 'alumni' || getUserRole() == 'mentor');
-      allow update: if isExistingOwner(resource.data.alumniId) && request.resource.data.alumniId == resource.data.alumniId;
-      allow delete: if isExistingOwner(resource.data.alumniId);
+      allow update: if isOwner(userId);
     }
 
     match /guidanceRequests/{guidanceRequestId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(request.resource.data.studentId);
-      allow update: if isExistingOwner(resource.data.studentId) && request.resource.data.studentId == resource.data.studentId;
-      allow delete: if isExistingOwner(resource.data.studentId);
+      allow update: if isSignedIn(); // Allow updating likes/reply count
+      allow delete: if isOwner(resource.data.studentId);
+
+      match /replies/{replyId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if isOwner(resource.data.authorId);
+      }
+    }
+
+    match /opportunities/{opportunityId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(request.resource.data.alumniId);
+      allow update, delete: if isOwner(resource.data.alumniId);
     }
 
     match /conversations/{conversationId}/messages/{messageId} {
-      // Allow read if the user is part of the conversation ID (which is a composite of two UIDs)
       allow read: if isSignedIn() && (conversationId.split('_')[0] == request.auth.uid || conversationId.split('_')[1] == request.auth.uid);
       allow create: if isOwner(request.resource.data.senderId);
-      allow update: if false;
-      allow delete: if isExistingOwner(resource.data.senderId);
+      allow delete: if isOwner(resource.data.senderId);
     }
   }
 }
