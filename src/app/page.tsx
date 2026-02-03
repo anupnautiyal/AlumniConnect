@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send } from "lucide-react";
+import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send, Users, MessageSquareQuote } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,19 @@ export default function Home() {
     return query(collection(firestore, 'opportunities'), orderBy('datePosted', 'desc'), limit(20));
   }, [firestore]);
   const { data: opportunities, isLoading: isOppLoading } = useCollection(opportunitiesQuery);
+
+  // Network Stats Queries
+  const alumniCountQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']));
+  }, [firestore]);
+  const { data: alumniList } = useCollection(alumniCountQuery);
+
+  const discussionsCountQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'guidanceRequests'));
+  }, [firestore]);
+  const { data: discussionsList } = useCollection(discussionsCountQuery);
 
   const isMentor = userData?.role === 'mentor' || userData?.role === 'alumni';
 
@@ -220,18 +233,45 @@ export default function Home() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-none shadow-sm bg-card">
-            <CardHeader>
-              <CardTitle className="text-lg font-headline">Network Overview</CardTitle>
+          <Card className="border-none shadow-sm bg-card overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b">
+              <CardTitle className="text-lg font-headline flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" /> Network Overview
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Verified Alumni</span>
-                <span className="text-xl font-bold text-primary">1,248</span>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex justify-between items-center p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Verified Alumni</span>
+                  <span className="text-2xl font-black text-primary font-headline">
+                    {alumniList ? alumniList.length.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Open Opportunities</span>
-                <span className="text-xl font-bold text-secondary">{opportunities?.length || 0}</span>
+              <div className="flex justify-between items-center p-4 bg-secondary/5 rounded-xl border border-secondary/10">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Open Roles</span>
+                  <span className="text-2xl font-black text-secondary font-headline">
+                    {opportunities ? opportunities.length.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="bg-secondary/10 p-2 rounded-lg">
+                  <Briefcase className="h-5 w-5 text-secondary" />
+                </div>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-accent/5 rounded-xl border border-accent/10">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Active Discussions</span>
+                  <span className="text-2xl font-black text-accent font-headline">
+                    {discussionsList ? discussionsList.length.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="bg-accent/10 p-2 rounded-lg">
+                  <MessageSquareQuote className="h-5 w-5 text-accent" />
+                </div>
               </div>
             </CardContent>
           </Card>
