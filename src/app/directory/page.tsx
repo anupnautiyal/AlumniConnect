@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Search, Filter, Linkedin, Mail, MessageSquare, Loader2, User } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
@@ -16,7 +17,6 @@ export default function DirectoryPage() {
 
   const alumniQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Fetch users who are either 'mentor' or 'alumni'
     return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']));
   }, [firestore]);
 
@@ -99,8 +99,10 @@ export default function DirectoryPage() {
                     <Mail className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button size="sm" variant="default" className="bg-primary">
-                  <MessageSquare className="mr-2 h-3.5 w-3.5" /> Message
+                <Button size="sm" variant="default" className="bg-primary" asChild>
+                  <Link href={`/messages?recipientId=${person.id}`}>
+                    <MessageSquare className="mr-2 h-3.5 w-3.5" /> Message
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
