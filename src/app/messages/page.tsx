@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Send, Phone, Video, MoreVertical, Circle, Loader2, User } from "lucide-react"
+import { Search, Send, Phone, Video, MoreVertical, Circle, Loader2, MessageSquare, User } from "lucide-react"
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
 import { collection, query, orderBy, where, doc, limit } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -45,11 +45,10 @@ function ChatContent() {
   const { data: messages, isLoading: isMessagesLoading } = useCollection(messagesQuery);
 
   // Recent conversations (Sidebar)
-  // Note: For a real app, we'd query a 'conversations' collection indexed by participant.
-  // For MVP, we'll fetch all users (alumni/mentors) as potential chat partners.
+  // We'll fetch all users who are mentors/alumni to facilitate discovery
   const alumniQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']), limit(20));
+    return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']), limit(50));
   }, [firestore]);
   const { data: alumniList, isLoading: isAlumniLoading } = useCollection(alumniQuery);
 
@@ -74,8 +73,14 @@ function ChatContent() {
   };
 
   const recipientName = recipientData 
-    ? `${recipientData.firstName} ${recipientData.lastName}` 
+    ? `${recipientData.firstName || ''} ${recipientData.lastName || ''}`.trim() || "User"
     : "Select a Contact";
+
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const f = firstName?.[0] || '';
+    const l = lastName?.[0] || '';
+    return (f + l).toUpperCase() || '?';
+  };
 
   return (
     <div className="container mx-auto py-6 px-4 h-[calc(100vh-80px)] overflow-hidden">
@@ -83,7 +88,7 @@ function ChatContent() {
         {/* Sidebar */}
         <div className="md:col-span-1 border-r flex flex-col h-full bg-muted/10">
           <div className="p-4 border-b">
-            <h2 className="text-xl font-bold mb-4">Messages</h2>
+            <h2 className="text-xl font-bold mb-4 font-headline">Messages</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9 bg-card" placeholder="Search chats..." />
@@ -91,7 +96,7 @@ function ChatContent() {
           </div>
           <ScrollArea className="flex-1">
             {isAlumniLoading ? (
-              <div className="p-4 flex justify-center"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary/30" /></div>
             ) : (
               alumniList?.filter(a => a.id !== user?.uid).map((person) => (
                 <div 
@@ -103,19 +108,24 @@ function ChatContent() {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="relative h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {person.firstName[0]}{person.lastName[0]}
+                    <div className="relative h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                      {getInitials(person.firstName, person.lastName)}
                       <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-0.5">
                         <span className="font-semibold text-sm truncate">{person.firstName} {person.lastName}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{person.role}</p>
+                      <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter font-medium">{person.role}</p>
                     </div>
                   </div>
                 </div>
               ))
+            )}
+            {!isAlumniLoading && (!alumniList || alumniList.length <= 1) && (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No other members found.
+              </div>
             )}
           </ScrollArea>
         </div>
@@ -124,39 +134,39 @@ function ChatContent() {
         <div className="hidden md:flex md:col-span-2 flex-col h-full bg-card">
           {!activeRecipientId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
-              <div className="bg-muted p-4 rounded-full mb-4">
-                <MessageSquare className="h-10 w-10 opacity-20" />
+              <div className="bg-muted p-6 rounded-full mb-4">
+                <MessageSquare className="h-12 w-12 opacity-20" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">No Chat Selected</h3>
-              <p>Choose a mentor from the sidebar or directory to start a conversation.</p>
+              <h3 className="text-xl font-bold text-foreground font-headline mb-2">Your Conversations</h3>
+              <p className="max-w-xs mx-auto">Select a mentor or peer from the directory to start building your professional network.</p>
             </div>
           ) : (
             <>
               {/* Chat Header */}
               <div className="p-4 border-b flex justify-between items-center bg-card/50">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {recipientData ? `${recipientData.firstName[0]}${recipientData.lastName[0]}` : '??'}
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                    {getInitials(recipientData?.firstName, recipientData?.lastName)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">{recipientName}</h3>
+                    <h3 className="font-bold text-sm leading-none mb-1">{recipientName}</h3>
                     <div className="flex items-center gap-1.5">
                       <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-                      <span className="text-[10px] text-muted-foreground">Active now</span>
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Online</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon"><Phone className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon"><Video className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full"><Phone className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full"><Video className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical className="h-4 w-4" /></Button>
                 </div>
               </div>
 
               {/* Chat Messages */}
               <ScrollArea className="flex-1 p-6">
                 {isMessagesLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin opacity-20" /></div>
+                  <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary/20" /></div>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {messages && messages.length > 0 ? (
@@ -165,15 +175,15 @@ function ChatContent() {
                         return (
                           <div key={msg.id} className={cn("flex", isMe ? 'justify-end' : 'justify-start')}>
                             <div className={cn(
-                              "max-w-[70%] p-3 rounded-2xl text-sm",
+                              "max-w-[75%] p-3 px-4 rounded-2xl text-sm shadow-sm",
                               isMe 
-                                ? 'bg-primary text-primary-foreground rounded-tr-none shadow-sm' 
+                                ? 'bg-primary text-primary-foreground rounded-tr-none' 
                                 : 'bg-muted text-foreground rounded-tl-none'
                             )}>
                               {msg.message}
                               <div className={cn(
-                                "text-[10px] mt-1 text-right",
-                                isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                                "text-[10px] mt-1.5 font-medium opacity-70",
+                                isMe ? 'text-right' : 'text-left'
                               )}>
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
@@ -182,8 +192,13 @@ function ChatContent() {
                         );
                       })
                     ) : (
-                      <div className="text-center py-20 text-muted-foreground italic text-sm">
-                        No messages yet. Say hello to {recipientData?.firstName}!
+                      <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
+                        <div className="bg-muted p-4 rounded-full mb-3">
+                          <Send className="h-6 w-6" />
+                        </div>
+                        <p className="text-sm font-medium italic">
+                          Start the conversation with {recipientData?.firstName || 'this user'}!
+                        </p>
                       </div>
                     )}
                   </div>
@@ -192,14 +207,14 @@ function ChatContent() {
 
               {/* Chat Input */}
               <div className="p-4 border-t bg-card/50">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2 max-w-4xl mx-auto">
                   <Input 
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="Type a message..." 
-                    className="bg-muted/30 h-11" 
+                    className="bg-muted/30 h-11 border-none focus-visible:ring-1 focus-visible:ring-primary/20" 
                   />
-                  <Button type="submit" size="icon" className="bg-primary rounded-full shrink-0 h-11 w-11 shadow-md">
+                  <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90 rounded-full shrink-0 h-11 w-11 shadow-md transition-all active:scale-95" disabled={!messageText.trim()}>
                     <Send className="h-5 w-5" />
                   </Button>
                 </form>
@@ -215,9 +230,9 @@ function ChatContent() {
 export default function MessagesPage() {
   return (
     <Suspense fallback={
-      <div className="container mx-auto py-20 flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading chats...</p>
+      <div className="container mx-auto py-20 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4 opacity-20" />
+        <p className="text-muted-foreground font-medium animate-pulse">Establishing secure connection...</p>
       </div>
     }>
       <ChatContent />
