@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, serverTimestamp, limit } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +71,7 @@ export default function Home() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2 font-headline">Opportunity Feed</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2 font-headline text-primary">Opportunity Feed</h1>
           <p className="text-muted-foreground">Discover internships, referrals, and projects posted by your alumni network.</p>
         </div>
         
@@ -84,7 +84,7 @@ export default function Home() {
           isMentor && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button className="bg-primary hover:bg-primary/90 rounded-full shadow-lg">
                   <PlusCircle className="mr-2 h-4 w-4" /> Post Opportunity
                 </Button>
               </DialogTrigger>
@@ -162,7 +162,7 @@ export default function Home() {
                   />
                   <div className="absolute top-4 right-4">
                     <Badge className={cn(
-                      "font-medium",
+                      "font-medium shadow-sm",
                       opp.type === "Internship" ? "bg-secondary" : 
                       opp.type === "Referral" ? "bg-primary" : "bg-teal-600"
                     )}>
@@ -187,7 +187,7 @@ export default function Home() {
                 </CardContent>
                 <CardFooter className="flex justify-between border-t bg-muted/30 pt-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
                       {opp.postedBy?.split(' ').map((n: string) => n[0]).join('') || 'A'}
                     </div>
                     <div>
@@ -201,7 +201,7 @@ export default function Home() {
                     <Button variant="ghost" size="sm">
                       <Share2 className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" className="bg-primary">
+                    <Button size="sm" className="bg-primary hover:bg-primary/90">
                       <MessageCircle className="mr-2 h-4 w-4" /> Connect
                     </Button>
                   </div>
@@ -218,31 +218,32 @@ export default function Home() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-none shadow-sm">
+          <Card className="border-none shadow-sm bg-card">
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Network Stats</CardTitle>
+              <CardTitle className="text-lg font-headline">Network Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Verified Alumni</span>
                 <span className="text-xl font-bold text-primary">1,248</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Open Opportunities</span>
                 <span className="text-xl font-bold text-secondary">{opportunities?.length || 0}</span>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-secondary text-secondary-foreground border-none shadow-sm">
+          <Card className="bg-primary text-primary-foreground border-none shadow-xl overflow-hidden relative">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Alumni Guidance</CardTitle>
-              <CardDescription className="text-secondary-foreground/80">
-                Browse our query system to find advice and insights from experienced graduates.
+              <CardTitle className="text-lg font-headline">Community Wisdom</CardTitle>
+              <CardDescription className="text-primary-foreground/80">
+                Browse our guidance feed to find advice and insights from experienced graduates.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full bg-background text-foreground" asChild>
+              <Button variant="outline" className="w-full bg-white/10 border-white/20 hover:bg-white/20 text-white" asChild>
                 <Link href="/guidance">View Guidance Feed</Link>
               </Button>
             </CardContent>
