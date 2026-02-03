@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react"
@@ -9,17 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Search, Filter, Linkedin, Mail, MessageSquare, Loader2, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 export default function DirectoryPage() {
+  const { user } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
 
   const alumniQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: alumni, isLoading } = useCollection(alumniQuery);
 
@@ -28,13 +28,13 @@ export default function DirectoryPage() {
     const email = (person.email || "").toLowerCase();
     const skills = (person.skills || []).map((s: string) => s.toLowerCase());
     const bio = (person.bio || "").toLowerCase();
-    const query = searchTerm.toLowerCase();
+    const queryStr = searchTerm.toLowerCase();
 
     return (
-      fullName.includes(query) ||
-      email.includes(query) ||
-      bio.includes(query) ||
-      skills.some((skill: string) => skill.includes(query))
+      fullName.includes(queryStr) ||
+      email.includes(queryStr) ||
+      bio.includes(queryStr) ||
+      skills.some((skill: string) => skill.includes(queryStr))
     );
   });
 

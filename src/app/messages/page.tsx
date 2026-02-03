@@ -29,11 +29,11 @@ function ChatContent() {
     }
   }, [initialRecipientId]);
 
-  // Get recipient profile if there's an active recipient
+  // Get recipient profile if there's an active recipient and user is signed in
   const recipientDocRef = useMemoFirebase(() => {
-    if (!firestore || !activeRecipientId) return null;
+    if (!firestore || !activeRecipientId || !user) return null;
     return doc(firestore, 'users', activeRecipientId);
-  }, [firestore, activeRecipientId]);
+  }, [firestore, activeRecipientId, user]);
   const { data: recipientData } = useDoc(recipientDocRef);
 
   // Derive conversation ID: lexicographical order of UIDs to ensure P2P uniqueness
@@ -43,20 +43,20 @@ function ChatContent() {
 
   // Messages in current conversation
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !conversationId) return null;
+    if (!firestore || !conversationId || !user) return null;
     return query(
       collection(firestore, 'conversations', conversationId, 'messages'),
       orderBy('timestamp', 'asc'),
       limit(100)
     );
-  }, [firestore, conversationId]);
+  }, [firestore, conversationId, user]);
   const { data: messages, isLoading: isMessagesLoading } = useCollection(messagesQuery);
 
-  // Users for Sidebar - mentors and students can see each other
+  // Users for Sidebar - only fetch if user is signed in
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'users'), limit(50));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: usersList, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const handleSendMessage = (e: React.FormEvent) => {

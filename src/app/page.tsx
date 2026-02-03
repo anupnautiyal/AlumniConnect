@@ -37,22 +37,22 @@ export default function Home() {
 
   // Opportunities Collection
   const opportunitiesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'opportunities'), orderBy('datePosted', 'desc'), limit(50));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: opportunities, isLoading: isOppLoading } = useCollection(opportunitiesQuery);
 
   // Network Stats Queries
   const alumniCountQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'users'), where('role', 'in', ['mentor', 'alumni']));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: alumniList } = useCollection(alumniCountQuery);
 
   const discussionsCountQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'guidanceRequests'));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: discussionsList } = useCollection(discussionsCountQuery);
 
   const isMentor = userData?.role === 'mentor' || userData?.role === 'alumni';

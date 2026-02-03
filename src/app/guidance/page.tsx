@@ -28,12 +28,12 @@ function ReplySection({ requestId }: { requestId: string }) {
   const { data: userData } = useDoc(userDocRef);
 
   const repliesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'guidanceRequests', requestId, 'replies'),
       orderBy('timestamp', 'asc')
     );
-  }, [firestore, requestId]);
+  }, [firestore, requestId, user]);
   const { data: replies, isLoading } = useCollection(repliesQuery);
 
   const handlePostReply = (e: React.FormEvent) => {
@@ -103,7 +103,7 @@ function ReplySection({ requestId }: { requestId: string }) {
           <Textarea 
             placeholder="Type your reply here..." 
             value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="min-h-[100px] bg-card resize-none pr-12 focus-visible:ring-primary/20"
           />
           <Button 
@@ -135,9 +135,9 @@ export default function GuidancePage() {
   const { data: userData } = useDoc(userDocRef);
 
   const guidanceQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'guidanceRequests'), orderBy('datePosted', 'desc'), limit(50));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: requests, isLoading } = useCollection(guidanceQuery);
 
