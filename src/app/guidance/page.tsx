@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageCircle, ThumbsUp, Plus, Loader2, Send, X, MessageSquareQuote, Sparkles, BrainCircuit } from "lucide-react"
+import { MessageCircle, ThumbsUp, Plus, Loader2, Send, MessageSquareQuote } from "lucide-react"
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,9 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { generateGuidanceAdvice } from "@/ai/flows/generate-guidance-advice";
 
 function ReplySection({ requestId }: { requestId: string }) {
   const { user } = useUser();
@@ -123,14 +121,12 @@ function ReplySection({ requestId }: { requestId: string }) {
 }
 
 export default function GuidancePage() {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -177,23 +173,6 @@ export default function GuidancePage() {
     if (!firestore) return;
     const requestRef = doc(firestore, 'guidanceRequests', requestId);
     updateDocumentNonBlocking(requestRef, { likes: (currentLikes || 0) + 1 });
-  };
-
-  const handleGetAiAdvice = async (title: string, description: string) => {
-    setIsAiLoading(true);
-    setAiAdvice(null);
-    try {
-      const result = await generateGuidanceAdvice({ title, description });
-      setAiAdvice(result.advice);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "AI error",
-        description: "Could not generate advice right now.",
-      });
-    } finally {
-      setIsAiLoading(false);
-    }
   };
 
   const filteredRequests = requests?.filter(req => 
@@ -281,10 +260,7 @@ export default function GuidancePage() {
                   </div>
                   <CardTitle 
                     className="text-xl font-headline group-hover:text-primary cursor-pointer transition-colors leading-tight"
-                    onClick={() => {
-                      setSelectedRequestId(q.id);
-                      setAiAdvice(null);
-                    }}
+                    onClick={() => setSelectedRequestId(q.id)}
                   >
                     {q.title}
                   </CardTitle>
@@ -294,7 +270,7 @@ export default function GuidancePage() {
                 </CardContent>
                 <CardFooter className="border-t bg-muted/20 pt-4 flex justify-between items-center px-6">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 shadow-sm">
                       {q.studentName?.[0] || 'S'}
                     </div>
                     <div className="flex flex-col">
@@ -310,10 +286,7 @@ export default function GuidancePage() {
                       <ThumbsUp className="h-3.5 w-3.5" /> {q.likes || 0}
                     </button>
                     <button 
-                      onClick={() => {
-                        setSelectedRequestId(q.id);
-                        setAiAdvice(null);
-                      }}
+                      onClick={() => setSelectedRequestId(q.id)}
                       className="flex items-center gap-1.5 text-xs font-bold text-primary transition-colors bg-primary/5 px-2.5 py-1 rounded-full border border-primary/10 shadow-sm hover:bg-primary/10"
                     >
                       <MessageSquareQuote className="h-3.5 w-3.5" /> View Advice
@@ -345,16 +318,6 @@ export default function GuidancePage() {
                   <Badge className="bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest">
                     {selectedRequest.category}
                   </Badge>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 rounded-full bg-white shadow-sm gap-2 text-xs font-bold text-primary border-primary/20 hover:bg-primary/5"
-                    disabled={isAiLoading}
-                    onClick={() => handleGetAiAdvice(selectedRequest.title, selectedRequest.description)}
-                  >
-                    {isAiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                    Get AI Perspective
-                  </Button>
                 </div>
                 <DialogTitle className="text-2xl font-headline leading-tight pr-6">
                   {selectedRequest.title}
@@ -377,26 +340,6 @@ export default function GuidancePage() {
                     "{selectedRequest.description}"
                   </p>
                 </div>
-
-                {aiAdvice && (
-                  <Card className="mb-10 border-none bg-gradient-to-br from-primary/5 to-secondary/5 shadow-inner">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-primary">
-                        <BrainCircuit className="h-4 w-4" /> AI Perspective
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm text-foreground/70 leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
-                        {aiAdvice}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="pt-0 pb-4">
-                      <p className="text-[10px] text-muted-foreground italic">
-                        Note: This response is generated by AI to provide immediate guidance.
-                      </p>
-                    </CardFooter>
-                  </Card>
-                )}
 
                 <ReplySection requestId={selectedRequest.id} />
               </ScrollArea>
