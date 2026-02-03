@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Briefcase, Users, MessageSquare, User } from "lucide-react"
+import { GraduationCap, Briefcase, Users, MessageSquare, User, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/firebase"
+import { Button } from "@/components/ui/button"
 
 const navItems = [
   { name: "Opportunities", href: "/", icon: Briefcase },
@@ -14,6 +16,7 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname()
+  const { user, isUserLoading } = useUser()
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-md">
@@ -50,12 +53,25 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/profile" className="flex items-center gap-2 bg-muted hover:bg-muted/80 p-1.5 pr-4 rounded-full transition-colors border">
-              <div className="bg-primary/10 p-1 rounded-full text-primary">
-                <User className="h-5 w-5" />
+            {isUserLoading ? (
+              <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
+            ) : user ? (
+              <Link href="/profile" className="flex items-center gap-2 bg-muted hover:bg-muted/80 p-1.5 pr-4 rounded-full transition-colors border">
+                <div className="bg-primary/10 p-1 rounded-full text-primary">
+                  <User className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-medium hidden sm:inline-block">My Profile</span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" asChild className="hidden sm:inline-flex">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/register">Join Now</Link>
+                </Button>
               </div>
-              <span className="text-sm font-medium hidden sm:inline-block">My Profile</span>
-            </Link>
+            )}
           </div>
         </div>
       </div>

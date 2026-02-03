@@ -1,12 +1,65 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { User, GraduationCap, Code, Briefcase, Settings, Edit2 } from "lucide-react"
+import { User, GraduationCap, Code, Briefcase, Settings, Edit2, LogOut, Loader2 } from "lucide-react"
+import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      router.push('/login');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message,
+      });
+    }
+  };
+
+  if (isUserLoading || isUserDataLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
+  const role = userData?.role || 'STUDENT';
+  const fullName = userData ? `${userData.firstName} ${userData.lastName}` : 'User';
+
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="max-w-4xl mx-auto">
@@ -22,18 +75,26 @@ export default function ProfilePage() {
                     <Edit2 className="text-white h-5 w-5" />
                   </div>
                 </div>
-                <CardTitle className="mt-4">Alex Rivera</CardTitle>
-                <CardDescription>Junior, Computer Science</CardDescription>
+                <CardTitle className="mt-4">{fullName}</CardTitle>
+                <CardDescription>{role === 'mentor' ? 'Verified Mentor' : 'Student Member'}</CardDescription>
               </CardHeader>
               <CardContent className="pb-6">
-                <Badge className="bg-secondary mb-4">STUDENT ROLE</Badge>
+                <Badge className={cn(
+                  "mb-4",
+                  role === 'mentor' ? "bg-secondary" : "bg-primary"
+                )}>
+                  {role.toUpperCase()} ROLE
+                </Badge>
                 <p className="text-sm text-muted-foreground px-2">
-                  Aspiring software engineer with a focus on web technologies and cloud infrastructure.
+                  {userData?.bio || "No bio added yet. Tell people about yourself!"}
                 </p>
               </CardContent>
               <CardFooter className="border-t pt-4 flex flex-col gap-2">
                 <Button variant="outline" className="w-full">
                   <Settings className="mr-2 h-4 w-4" /> Account Settings
+                </Button>
+                <Button variant="destructive" className="w-full" onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
                 </Button>
               </CardFooter>
             </Card>
@@ -123,4 +184,8 @@ export default function ProfilePage() {
       </div>
     </div>
   )
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }
