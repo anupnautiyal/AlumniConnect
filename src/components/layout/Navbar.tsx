@@ -1,0 +1,65 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { GraduationCap, Briefcase, Users, MessageSquare, Lightbulb, User } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+const navItems = [
+  { name: "Opportunities", href: "/", icon: Briefcase },
+  { name: "Directory", href: "/directory", icon: Users },
+  { name: "Matchmaking", href: "/matchmaking", icon: Lightbulb },
+  { name: "Guidance", href: "/guidance", icon: GraduationCap },
+  { name: "Messages", href: "/messages", icon: MessageSquare },
+]
+
+export default function Navbar() {
+  const pathname = usePathname()
+
+  return (
+    <nav className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-md">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="bg-primary p-2 rounded-lg transition-transform group-hover:scale-110">
+                <GraduationCap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-headline font-bold text-primary tracking-tight">AlumniConnect</span>
+            </Link>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all hover:bg-muted",
+                    pathname === item.href 
+                      ? "text-primary bg-primary/5" 
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Link href="/profile" className="flex items-center gap-2 bg-muted hover:bg-muted/80 p-1.5 pr-4 rounded-full transition-colors border">
+              <div className="bg-primary/10 p-1 rounded-full text-primary">
+                <User className="h-5 w-5" />
+              </div>
+              <span className="text-sm font-medium hidden sm:inline-block">My Profile</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}

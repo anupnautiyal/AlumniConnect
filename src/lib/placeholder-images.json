@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "alumni-1",
+      "description": "Professional Software Engineer Alumni",
+      "imageUrl": "https://images.unsplash.com/photo-1629425733761-caae3b5f2e50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NzAxMDM5MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    },
+    {
+      "id": "alumni-2",
+      "description": "Product Manager Alumni",
+      "imageUrl": "https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxidXNpbmVzcyUyMHBlcnNvbnxlbnwwfHx8fDE3NzAwNzI3NjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business person"
+    },
+    {
+      "id": "alumni-3",
+      "description": "Data Scientist Alumni",
+      "imageUrl": "https://images.unsplash.com/photo-1701206115937-8ee6fcf14e2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzbWlsaW5nJTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3MDEyMDAxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smiling professional"
+    },
+    {
+      "id": "office-1",
+      "description": "Modern office workspace",
+      "imageUrl": "https://images.unsplash.com/photo-1531972111231-7482a960e109?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtb2Rlcm4lMjBvZmZpY2V8ZW58MHx8fHwxNzcwMDQzNDk5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern office"
+    }
+  ]
 }
