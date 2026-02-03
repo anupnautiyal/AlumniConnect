@@ -16,14 +16,6 @@ service cloud.firestore {
      * - /opportunities: Content created by alumni, publicly viewable, but owner-writable.
      * - /guidanceRequests: Content created by students, publicly viewable, but owner-writable.
      * - /conversations/{id}/messages/{id}: Private peer-to-peer communication.
-     *
-     * Key Security Decisions:
-     * 1. Role-Based Creation: To address the specific requirement that only Mentors post opportunities, 
-     *    the 'create' rule for /opportunities performs a lookup on the user's document to verify their role.
-     * 2. Denormalization for Authorization: Ownership IDs (alumniId, studentId, userId) are strictly 
-     *    enforced on document creation to allow fast, non-recursive rules for updates and deletions.
-     * 3. Public Listing: Opportunities and Guidance Requests are publicly listable to encourage 
-     *    platform engagement, while user listings are restricted to prevent scraping.
      */
 
     // --- Helper Functions ---
@@ -53,13 +45,11 @@ service cloud.firestore {
     /**
      * @description Rules for the core User identity.
      * @path /users/{userId}
-     * @allow (get) Any authenticated user to facilitate profile discovery.
-     * @deny (list) Prevent broad scraping of user data.
+     * @allow (get, list) Authenticated users can facilitate profile discovery and directory listing.
      * @principle Ownership for writes; authenticated read for platform connectivity.
      */
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if false; 
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId) && request.resource.data.id == userId;
       allow delete: if isExistingOwner(userId);
@@ -68,9 +58,6 @@ service cloud.firestore {
     /**
      * @description Profiles specific to students.
      * @path /studentProfiles/{studentProfileId}
-     * @allow (create) If the user matches the userId and the path matches the profile ID.
-     * @deny (update) If attempting to change the associated userId.
-     * @principle Relational integrity and ownership.
      */
     match /studentProfiles/{studentProfileId} {
       allow get, list: if isSignedIn();
@@ -82,9 +69,6 @@ service cloud.firestore {
     /**
      * @description Profiles specific to alumni/mentors.
      * @path /alumniProfiles/{alumniProfileId}
-     * @allow (create) If the user matches the userId and the path matches the profile ID.
-     * @deny (update) If attempting to change the associated userId.
-     * @principle Relational integrity and ownership.
      */
     match /alumniProfiles/{alumniProfileId} {
       allow get, list: if isSignedIn();
@@ -96,13 +80,9 @@ service cloud.firestore {
     /**
      * @description Opportunities for internships or jobs.
      * @path /opportunities/{opportunityId}
-     * @allow (create) ONLY if the user has the 'alumni' or 'mentor' role.
-     * @deny (create) If a student attempts to post an opportunity.
-     * @principle Role-based restriction on content creation.
      */
     match /opportunities/{opportunityId} {
       allow get, list: if isSignedIn();
-      // Logic requirement: Only mentors/alumni can post. We check the 'alumni' role.
       allow create: if isOwner(request.resource.data.alumniId) 
                     && (getUserRole() == 'alumni' || getUserRole() == 'mentor');
       allow update: if isExistingOwner(resource.data.alumniId) && request.resource.data.alumniId == resource.data.alumniId;
@@ -112,9 +92,6 @@ service cloud.firestore {
     /**
      * @description Guidance requests posted by students seeking help.
      * @path /guidanceRequests/{guidanceRequestId}
-     * @allow (create) If the user is the owner of the studentId.
-     * @deny (update) If the studentId is modified.
-     * @principle Public read with owner-only writes.
      */
     match /guidanceRequests/{guidanceRequestId} {
       allow get, list: if isSignedIn();
@@ -126,20 +103,15 @@ service cloud.firestore {
     /**
      * @description Private direct messages within a conversation.
      * @path /conversations/{conversationId}/messages/{messageId}
-     * @allow (get, list) If the user is either the sender or the receiver.
-     * @deny (create) If the senderId does not match the authenticated user.
-     * @principle Shared access restricted to specific participants.
      */
     match /conversations/{conversationId}/messages/{messageId} {
-      // Helper for message participants
       function isParticipant(data) {
         return request.auth.uid == data.senderId || request.auth.uid == data.receiverId;
       }
-
       allow get: if isSignedIn() && isParticipant(resource.data);
-      allow list: if isSignedIn(); // Filtering is handled by the client-side query where senderId or receiverId == auth.uid
+      allow list: if isSignedIn();
       allow create: if isOwner(request.resource.data.senderId);
-      allow update: if false; // Messages are immutable for integrity.
+      allow update: if false;
       allow delete: if isExistingOwner(resource.data.senderId);
     }
   }
