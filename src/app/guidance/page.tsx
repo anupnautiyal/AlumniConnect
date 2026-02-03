@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react"
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageCircle, ThumbsUp, Plus, Loader2, Send, X, MessageSquareQuote } from "lucide-react"
+import { MessageCircle, ThumbsUp, Plus, Loader2, Send, X, MessageSquareQuote, Sparkles, BrainCircuit } from "lucide-react"
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,6 +15,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateGuidanceAdvice } from "@/ai/flows/generate-guidance-advice";
 
 function ReplySection({ requestId }: { requestId: string }) {
   const { user } = useUser();
@@ -53,9 +53,6 @@ function ReplySection({ requestId }: { requestId: string }) {
     };
 
     addDocumentNonBlocking(collection(firestore, 'guidanceRequests', requestId, 'replies'), newReply);
-    
-    // Optimistically update reply count on the main request could be done here, 
-    // but we'll keep it simple for now.
     
     setReplyText("");
     toast({
@@ -132,6 +129,8 @@ export default function GuidancePage() {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -178,6 +177,23 @@ export default function GuidancePage() {
     if (!firestore) return;
     const requestRef = doc(firestore, 'guidanceRequests', requestId);
     updateDocumentNonBlocking(requestRef, { likes: (currentLikes || 0) + 1 });
+  };
+
+  const handleGetAiAdvice = async (title: string, description: string) => {
+    setIsAiLoading(true);
+    setAiAdvice(null);
+    try {
+      const result = await generateGuidanceAdvice({ title, description });
+      setAiAdvice(result.advice);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "AI error",
+        description: "Could not generate advice right now.",
+      });
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const filteredRequests = requests?.filter(req => 
@@ -265,7 +281,10 @@ export default function GuidancePage() {
                   </div>
                   <CardTitle 
                     className="text-xl font-headline group-hover:text-primary cursor-pointer transition-colors leading-tight"
-                    onClick={() => setSelectedRequestId(q.id)}
+                    onClick={() => {
+                      setSelectedRequestId(q.id);
+                      setAiAdvice(null);
+                    }}
                   >
                     {q.title}
                   </CardTitle>
@@ -291,7 +310,10 @@ export default function GuidancePage() {
                       <ThumbsUp className="h-3.5 w-3.5" /> {q.likes || 0}
                     </button>
                     <button 
-                      onClick={() => setSelectedRequestId(q.id)}
+                      onClick={() => {
+                        setSelectedRequestId(q.id);
+                        setAiAdvice(null);
+                      }}
                       className="flex items-center gap-1.5 text-xs font-bold text-primary transition-colors bg-primary/5 px-2.5 py-1 rounded-full border border-primary/10 shadow-sm hover:bg-primary/10"
                     >
                       <MessageSquareQuote className="h-3.5 w-3.5" /> View Advice
@@ -323,6 +345,16 @@ export default function GuidancePage() {
                   <Badge className="bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest">
                     {selectedRequest.category}
                   </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 rounded-full bg-white shadow-sm gap-2 text-xs font-bold text-primary border-primary/20 hover:bg-primary/5"
+                    disabled={isAiLoading}
+                    onClick={() => handleGetAiAdvice(selectedRequest.title, selectedRequest.description)}
+                  >
+                    {isAiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    Get AI Perspective
+                  </Button>
                 </div>
                 <DialogTitle className="text-2xl font-headline leading-tight pr-6">
                   {selectedRequest.title}
@@ -340,11 +372,31 @@ export default function GuidancePage() {
               </DialogHeader>
               
               <ScrollArea className="flex-1 p-8 pt-6">
-                <div className="mb-10">
+                <div className="mb-6">
                   <p className="text-foreground/80 leading-relaxed text-base italic border-l-4 border-primary/20 pl-4 py-2 bg-primary/5 rounded-r-lg">
                     "{selectedRequest.description}"
                   </p>
                 </div>
+
+                {aiAdvice && (
+                  <Card className="mb-10 border-none bg-gradient-to-br from-primary/5 to-secondary/5 shadow-inner">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+                        <BrainCircuit className="h-4 w-4" /> AI Perspective
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-foreground/70 leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
+                        {aiAdvice}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-0 pb-4">
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Note: This response is generated by AI to provide immediate guidance.
+                      </p>
+                    </CardFooter>
+                  </Card>
+                )}
 
                 <ReplySection requestId={selectedRequest.id} />
               </ScrollArea>
