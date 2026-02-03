@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Briefcase, Users, MessageSquare, User, LogIn } from "lucide-react"
+import { GraduationCap, Briefcase, Users, MessageSquare, User, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useUser } from "@/firebase"
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase"
+import { doc } from 'firebase/firestore'
 import { Button } from "@/components/ui/button"
 
 const navItems = [
@@ -17,6 +18,15 @@ const navItems = [
 export default function Navbar() {
   const pathname = usePathname()
   const { user, isUserLoading } = useUser()
+  const firestore = useFirestore()
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userData } = useDoc(userDocRef);
+
+  const isStudent = userData?.role === 'student';
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-md">
@@ -50,6 +60,19 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            
+            {user && isStudent && (
+              <Link
+                href="/matchmaking"
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all text-secondary hover:bg-secondary/5",
+                  pathname === "/matchmaking" ? "bg-secondary/10" : ""
+                )}
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Match
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
