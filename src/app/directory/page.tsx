@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react"
@@ -22,24 +23,34 @@ export default function DirectoryPage() {
 
   const { data: alumni, isLoading } = useCollection(alumniQuery);
 
-  const filteredAlumni = alumni?.filter(person => 
-    `${person.firstName} ${person.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    person.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAlumni = alumni?.filter(person => {
+    const fullName = `${person.firstName} ${person.lastName}`.toLowerCase();
+    const email = (person.email || "").toLowerCase();
+    const skills = (person.skills || []).map((s: string) => s.toLowerCase());
+    const bio = (person.bio || "").toLowerCase();
+    const query = searchTerm.toLowerCase();
+
+    return (
+      fullName.includes(query) ||
+      email.includes(query) ||
+      bio.includes(query) ||
+      skills.some((skill: string) => skill.includes(query))
+    );
+  });
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2 font-headline text-primary">Alumni Directory</h1>
-          <p className="text-muted-foreground">Connect with graduates who are leading in their fields.</p>
+          <p className="text-muted-foreground">Connect with graduates by name, role, or technical expertise.</p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
           <div className="relative flex-1 md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              className="pl-9" 
-              placeholder="Search by name..." 
+              className="pl-9 bg-card" 
+              placeholder="Search name or skill (e.g. React)..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -83,7 +94,7 @@ export default function DirectoryPage() {
                   {person.bio || "No bio available for this alumni member yet."}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(person.skills || ["Mentorship", "Industry Experience"]).map((skill: string) => (
+                  {(person.skills || ["Mentorship"]).map((skill: string) => (
                     <Badge key={skill} variant="secondary" className="bg-muted/50 text-[10px] py-0">
                       {skill}
                     </Badge>

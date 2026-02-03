@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { User, GraduationCap, Code, Briefcase, Settings, Edit2, LogOut, Loader2, Save } from "lucide-react"
+import { User, GraduationCap, Code, Briefcase, Edit2, LogOut, Loader2, Save, X, Plus } from "lucide-react"
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -23,6 +24,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [newSkill, setNewSkill] = useState("");
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -70,6 +72,25 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
 
+  const handleAddSkill = () => {
+    if (!newSkill.trim() || !userDocRef || !userData) return;
+    const currentSkills = userData.skills || [];
+    if (currentSkills.includes(newSkill.trim())) return;
+    
+    updateDocumentNonBlocking(userDocRef, {
+      skills: [...currentSkills, newSkill.trim()]
+    });
+    setNewSkill("");
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    if (!userDocRef || !userData) return;
+    const currentSkills = userData.skills || [];
+    updateDocumentNonBlocking(userDocRef, {
+      skills: currentSkills.filter((s: string) => s !== skillToRemove)
+    });
+  };
+
   if (isUserLoading || isUserDataLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
@@ -86,59 +107,87 @@ export default function ProfilePage() {
 
   const role = userData?.role || 'student';
   const fullName = userData ? `${userData.firstName} ${userData.lastName}` : 'User';
+  const userSkills = userData?.skills || [];
 
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="max-w-4xl mx-auto">
-        <form onSubmit={handleSaveProfile} className="space-y-8">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            
-            <div className="w-full md:w-1/3 space-y-6">
-              <Card className="border-none shadow-md overflow-hidden text-center">
-                <div className="h-24 bg-primary" />
-                <CardHeader className="-mt-12">
-                  <div className="mx-auto h-24 w-24 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary overflow-hidden shadow-lg relative">
-                    <User className="h-12 w-12" />
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+          
+          <div className="w-full md:w-1/3 space-y-6">
+            <Card className="border-none shadow-md overflow-hidden text-center">
+              <div className="h-24 bg-primary" />
+              <CardHeader className="-mt-12">
+                <div className="mx-auto h-24 w-24 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary overflow-hidden shadow-lg relative">
+                  <User className="h-12 w-12" />
+                </div>
+                <CardTitle className="mt-4">{fullName}</CardTitle>
+                <CardDescription>{role === 'mentor' || role === 'alumni' ? 'Verified Mentor' : 'Student Member'}</CardDescription>
+              </CardHeader>
+              <CardContent className="pb-6">
+                <Badge className={cn(
+                  "mb-4 uppercase",
+                  (role === 'mentor' || role === 'alumni') ? "bg-secondary" : "bg-primary"
+                )}>
+                  {role}
+                </Badge>
+                <p className="text-sm text-muted-foreground px-2">
+                  {userData?.bio || "No bio added yet. Tell people about yourself!"}
+                </p>
+              </CardContent>
+              <CardFooter className="border-t pt-4 flex flex-col gap-2">
+                <Button type="button" variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
+                  <Edit2 className="mr-2 h-4 w-4" /> {isEditing ? "Cancel Editing" : "Edit Profile"}
+                </Button>
+                <Button type="button" variant="destructive" className="w-full" onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card className="border-none shadow-md">
+              <CardHeader>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Code className="h-4 w-4 text-secondary" /> Technical Skills
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {userSkills.length > 0 ? (
+                    userSkills.map((s: string) => (
+                      <Badge key={s} variant="secondary" className="bg-muted text-xs flex items-center gap-1 group">
+                        {s}
+                        {isEditing && (
+                          <button onClick={() => handleRemoveSkill(s)} className="hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No skills listed yet.</p>
+                  )}
+                </div>
+                {isEditing && (
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Add a skill..." 
+                      value={newSkill} 
+                      onChange={(e) => setNewSkill(e.target.value)}
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                    />
+                    <Button size="icon" variant="secondary" className="h-8 w-8" onClick={handleAddSkill}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <CardTitle className="mt-4">{fullName}</CardTitle>
-                  <CardDescription>{role === 'mentor' || role === 'alumni' ? 'Verified Mentor' : 'Student Member'}</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-6">
-                  <Badge className={cn(
-                    "mb-4 uppercase",
-                    (role === 'mentor' || role === 'alumni') ? "bg-secondary" : "bg-primary"
-                  )}>
-                    {role}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground px-2">
-                    {userData?.bio || "No bio added yet. Tell people about yourself!"}
-                  </p>
-                </CardContent>
-                <CardFooter className="border-t pt-4 flex flex-col gap-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
-                    <Edit2 className="mr-2 h-4 w-4" /> {isEditing ? "Cancel Editing" : "Edit Profile"}
-                  </Button>
-                  <Button type="button" variant="destructive" className="w-full" onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                  </Button>
-                </CardFooter>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-              <Card className="border-none shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Code className="h-4 w-4 text-secondary" /> Technical Skills
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {["React", "Node.js", "Python", "TypeScript", "AWS"].map(s => (
-                    <Badge key={s} variant="secondary" className="bg-muted text-xs">{s}</Badge>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="w-full md:w-2/3 space-y-6">
+          <div className="w-full md:w-2/3 space-y-6">
+            <form onSubmit={handleSaveProfile} className="space-y-6">
               <Card className="border-none shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-headline">
@@ -150,11 +199,11 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} />
+                      <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} />
+                      <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="major">Major / Field</Label>
@@ -184,27 +233,27 @@ export default function ProfilePage() {
                   </CardFooter>
                 )}
               </Card>
+            </form>
 
-              <Card className="border-none shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-headline">
-                    <Briefcase className="h-5 w-5 text-primary" /> Career Interests
-                  </CardTitle>
-                  <CardDescription>Help mentors understand your aspirations.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {["Open Source", "FinTech", "AI/ML", "DevOps", "Startups"].map(i => (
-                      <Badge key={i} className="bg-teal-500/10 text-teal-600 border-teal-200">
-                        {i}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="border-none shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-headline">
+                  <Briefcase className="h-5 w-5 text-primary" /> Career Interests
+                </CardTitle>
+                <CardDescription>Target industries and professional goals.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {["Open Source", "FinTech", "AI/ML", "DevOps", "Startups"].map(i => (
+                    <Badge key={i} className="bg-teal-500/10 text-teal-600 border-teal-200">
+                      {i}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

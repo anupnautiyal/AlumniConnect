@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the AlumniConnect platform. This entity stores basic user information and role.",
+      "description": "Represents a user of the AlumniConnect platform. This entity stores basic user information, role, and professional background.",
       "properties": {
         "id": {
           "type": "string",
@@ -26,7 +26,26 @@
         },
         "role": {
           "type": "string",
-          "description": "The role of the user (e.g., student, alumni)."
+          "description": "The role of the user (e.g., student, alumni, mentor)."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short professional biography."
+        },
+        "major": {
+          "type": "string",
+          "description": "The user's academic major or field of study."
+        },
+        "graduationYear": {
+          "type": "string",
+          "description": "The year the user graduated or expects to graduate."
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of professional or technical skills."
         }
       },
       "required": [
