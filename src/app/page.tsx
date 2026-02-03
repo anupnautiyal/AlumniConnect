@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 const MOCK_OPPORTUNITIES = [
   {
@@ -130,23 +131,19 @@ export default function Home() {
                 <span className="text-sm font-medium">Open Opportunities</span>
                 <span className="text-xl font-bold text-secondary">85</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                <span className="text-sm font-medium">New Matches</span>
-                <span className="text-xl font-bold text-teal-600">12</span>
-              </div>
             </CardContent>
           </Card>
           
           <Card className="bg-secondary text-secondary-foreground">
             <CardHeader>
-              <CardTitle className="text-lg">Career Guidance</CardTitle>
+              <CardTitle className="text-lg">Alumni Guidance</CardTitle>
               <CardDescription className="text-secondary-foreground/80">
-                Browse our query system to find advice from experienced graduates.
+                Browse our query system to find advice and insights from experienced graduates.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="outline" className="w-full bg-background text-foreground" asChild>
-                <Link href="/guidance">View Guidance</Link>
+                <Link href="/guidance">View Guidance Feed</Link>
               </Button>
             </CardContent>
           </Card>
@@ -154,8 +151,4 @@ export default function Home() {
       </div>
     </div>
   )
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
 }
