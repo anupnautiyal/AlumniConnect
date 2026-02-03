@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Briefcase, Users, MessageSquare, Lightbulb, User } from "lucide-react"
+import { GraduationCap, Briefcase, Users, MessageSquare, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { name: "Opportunities", href: "/", icon: Briefcase },
   { name: "Directory", href: "/directory", icon: Users },
-  { name: "Matchmaking", href: "/matchmaking", icon: Lightbulb },
   { name: "Guidance", href: "/guidance", icon: GraduationCap },
   { name: "Messages", href: "/messages", icon: MessageSquare },
 ]

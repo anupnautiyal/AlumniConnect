@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 const MOCK_OPPORTUNITIES = [
   {
@@ -135,17 +136,17 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="bg-primary text-primary-foreground">
+          
+          <Card className="bg-secondary text-secondary-foreground">
             <CardHeader>
-              <CardTitle className="text-lg">Smart Matchmaking</CardTitle>
-              <CardDescription className="text-primary-foreground/80">
-                Let our AI find the perfect mentor for your career goals.
+              <CardTitle className="text-lg">Career Guidance</CardTitle>
+              <CardDescription className="text-secondary-foreground/80">
+                Browse our query system to find advice from experienced graduates.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="secondary" className="w-full" asChild>
-                <Link href="/matchmaking">Try AI Matching</Link>
+              <Button variant="outline" className="w-full bg-background text-foreground" asChild>
+                <Link href="/guidance">View Guidance</Link>
               </Button>
             </CardContent>
           </Card>
@@ -158,4 +159,3 @@ export default function Home() {
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(' ');
 }
-import Link from "next/link"
