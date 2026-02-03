@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send, Users, MessageSquareQuote } from "lucide-react";
+import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send, Users, MessageSquareQuote, Search, Filter, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,10 @@ export default function Home() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Search and Filter State
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string>("All");
 
   // User Profile
   const userDocRef = useMemoFirebase(() => {
@@ -34,7 +38,7 @@ export default function Home() {
   // Opportunities Collection
   const opportunitiesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'opportunities'), orderBy('datePosted', 'desc'), limit(20));
+    return query(collection(firestore, 'opportunities'), orderBy('datePosted', 'desc'), limit(50));
   }, [firestore]);
   const { data: opportunities, isLoading: isOppLoading } = useCollection(opportunitiesQuery);
 
@@ -80,6 +84,19 @@ export default function Home() {
     setIsDialogOpen(false);
   };
 
+  const filteredOpportunities = opportunities?.filter(opp => {
+    const matchesSearch = 
+      opp.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      opp.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opp.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = activeFilter === "All" || opp.type === activeFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  const filters = ["All", "Internship", "Full-time", "Referral", "Project"];
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -97,14 +114,14 @@ export default function Home() {
           isMentor && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 rounded-full shadow-lg">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Post Opportunity
+                <Button className="bg-primary hover:bg-primary/90 rounded-full shadow-lg h-11 px-6">
+                  <PlusCircle className="mr-2 h-5 w-5" /> Post Opportunity
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[525px]">
                 <form onSubmit={handlePostOpportunity}>
                   <DialogHeader>
-                    <DialogTitle>Post New Opportunity</DialogTitle>
+                    <DialogTitle className="font-headline text-xl">Post New Opportunity</DialogTitle>
                     <DialogDescription>
                       Share a job opening, internship, or project with the student community.
                     </DialogDescription>
@@ -144,7 +161,7 @@ export default function Home() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit" className="w-full">
+                    <Button type="submit" className="w-full h-11 font-bold">
                       <Send className="mr-2 h-4 w-4" /> Publish Opportunity
                     </Button>
                   </DialogFooter>
@@ -157,27 +174,64 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
+          {/* Search and Filters */}
+          <div className="bg-card p-4 rounded-2xl shadow-sm border space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search by title, company, or skills..." 
+                className="pl-10 h-11 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {filters.map((filter) => (
+                <Button
+                  key={filter}
+                  variant={activeFilter === filter ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveFilter(filter)}
+                  className={cn(
+                    "rounded-full px-4 font-medium transition-all",
+                    activeFilter === filter ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-primary/5 hover:text-primary"
+                  )}
+                >
+                  {filter}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {isOppLoading ? (
             <div className="flex flex-col items-center justify-center py-20 bg-muted/20 rounded-xl border border-dashed">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
               <p className="text-muted-foreground">Loading the latest opportunities...</p>
             </div>
-          ) : opportunities && opportunities.length > 0 ? (
-            opportunities.map((opp) => (
-              <Card key={opp.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
-                <div className="relative h-48 w-full">
+          ) : filteredOpportunities && filteredOpportunities.length > 0 ? (
+            filteredOpportunities.map((opp) => (
+              <Card key={opp.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow group">
+                <div className="relative h-48 w-full overflow-hidden">
                   <Image 
                     src={opp.image || `https://picsum.photos/seed/${opp.id}/800/400`} 
                     alt={opp.title} 
                     fill 
-                    className="object-cover" 
+                    className="object-cover transition-transform duration-500 group-hover:scale-105" 
                     data-ai-hint="office tech"
                   />
                   <div className="absolute top-4 right-4">
                     <Badge className={cn(
-                      "font-medium shadow-sm",
-                      opp.type === "Internship" ? "bg-secondary" : 
-                      opp.type === "Referral" ? "bg-primary" : "bg-teal-600"
+                      "font-bold shadow-md px-3 py-1 uppercase tracking-tighter text-[10px]",
+                      opp.type === "Internship" ? "bg-secondary text-white" : 
+                      opp.type === "Referral" ? "bg-primary text-white" : "bg-teal-600 text-white"
                     )}>
                       {opp.type}
                     </Badge>
@@ -186,53 +240,62 @@ export default function Home() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl mb-1 font-headline">{opp.title}</CardTitle>
+                      <CardTitle className="text-xl mb-1 font-headline group-hover:text-primary transition-colors">{opp.title}</CardTitle>
                       <CardDescription className="flex items-center gap-2">
-                        <span className="font-semibold text-primary">{opp.company}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {opp.location}</span>
+                        <span className="font-bold text-primary">{opp.company}</span>
+                        <span className="text-muted-foreground/30">•</span>
+                        <span className="flex items-center gap-1 font-medium"><MapPin className="h-3 w-3" /> {opp.location}</span>
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground line-clamp-3">{opp.description}</p>
+                  <p className="text-muted-foreground line-clamp-3 text-sm leading-relaxed">{opp.description}</p>
                 </CardContent>
-                <CardFooter className="flex justify-between border-t bg-muted/30 pt-4">
+                <CardFooter className="flex justify-between border-t bg-muted/10 pt-4 px-6">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20 shadow-sm">
                       {opp.postedBy?.split(' ').map((n: string) => n[0]).join('') || 'A'}
                     </div>
                     <div>
-                      <p className="text-xs font-medium">{opp.postedBy}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-2 w-2" /> {new Date(opp.datePosted).toLocaleDateString()}
+                      <p className="text-xs font-bold text-foreground">{opp.postedBy}</p>
+                      <p className="text-[9px] text-muted-foreground flex items-center gap-1 uppercase font-black tracking-widest opacity-60">
+                        <Clock className="h-2 w-2" /> {new Date(opp.datePosted).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5">
                       <Share2 className="h-4 w-4" />
                     </Button>
                     {user && user.uid !== opp.alumniId && (
-                      <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 rounded-full font-bold shadow-sm" asChild>
                         <Link href={`/messages?recipientId=${opp.alumniId}`}>
                           <MessageCircle className="mr-2 h-4 w-4" /> Connect
                         </Link>
                       </Button>
                     )}
                     {user && user.uid === opp.alumniId && (
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-tighter">Your Post</Badge>
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-widest font-black py-1 px-3 border-primary/20 text-primary bg-primary/5">
+                        Your Post
+                      </Badge>
                     )}
                   </div>
                 </CardFooter>
               </Card>
             ))
           ) : (
-            <div className="text-center py-20 bg-muted/10 rounded-xl border border-dashed">
-              <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-semibold">No opportunities yet</h3>
-              <p className="text-muted-foreground">Check back later or post the first one!</p>
+            <div className="text-center py-24 bg-muted/10 rounded-2xl border border-dashed flex flex-col items-center">
+              <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-10" />
+              <h3 className="text-xl font-bold font-headline">No opportunities found</h3>
+              <p className="text-muted-foreground max-w-xs mx-auto mt-2">Try adjusting your search terms or filter to see more results.</p>
+              <Button 
+                variant="outline" 
+                className="mt-6 rounded-full" 
+                onClick={() => { setSearchTerm(""); setActiveFilter("All"); }}
+              >
+                Clear all filters
+              </Button>
             </div>
           )}
         </div>
@@ -290,7 +353,7 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full bg-white/10 border-white/20 hover:bg-white/20 text-white" asChild>
+              <Button variant="outline" className="w-full bg-white/10 border-white/20 hover:bg-white/20 text-white font-bold rounded-full" asChild>
                 <Link href="/guidance">View Guidance Feed</Link>
               </Button>
             </CardContent>
