@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense } from "react"
@@ -7,14 +6,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Send, Phone, Video, MoreVertical, Circle, Loader2, MessageSquare, User } from "lucide-react"
+import { Search, Send, Phone, Video, MoreVertical, Loader2, MessageSquare, LogIn } from "lucide-react"
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
-import { collection, query, orderBy, where, doc, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 function ChatContent() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const initialRecipientId = searchParams.get('recipientId');
@@ -35,14 +35,14 @@ function ChatContent() {
     }
   }, [initialRecipientId]);
 
-  // Get recipient profile if there's an active recipient and user is signed in
+  // Get recipient profile
   const recipientDocRef = useMemoFirebase(() => {
     if (!firestore || !activeRecipientId || !user) return null;
     return doc(firestore, 'users', activeRecipientId);
   }, [firestore, activeRecipientId, user]);
   const { data: recipientData } = useDoc(recipientDocRef);
 
-  // Derive conversation ID: lexicographical order of UIDs to ensure P2P uniqueness
+  // Derive conversation ID
   const conversationId = activeRecipientId && user 
     ? [user.uid, activeRecipientId].sort().join('_') 
     : null;
@@ -58,7 +58,7 @@ function ChatContent() {
   }, [firestore, conversationId, user]);
   const { data: messages, isLoading: isMessagesLoading } = useCollection(messagesQuery);
 
-  // Users for Sidebar - only fetch if user is signed in
+  // Users for Sidebar
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users'), limit(50));
@@ -88,9 +88,32 @@ function ChatContent() {
   const getInitials = (firstName?: string, lastName?: string) => {
     const f = firstName?.[0] || '';
     const l = lastName?.[0] || '';
-    const initials = (f + l).toUpperCase();
-    return initials || '?';
+    return (f + l).toUpperCase() || '?';
   };
+
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="container mx-auto py-6 px-4 h-[calc(100vh-80px)] flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/20 mb-4" />
+        <p className="text-muted-foreground text-sm font-medium animate-pulse">Syncing communications...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-6 px-4 h-[calc(100vh-80px)] flex flex-col items-center justify-center">
+        <div className="bg-card p-8 rounded-2xl shadow-xl text-center max-w-md border">
+          <MessageSquare className="h-12 w-12 text-primary/30 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Sign in to Message</h2>
+          <p className="text-muted-foreground mb-6">You need to be logged in to connect with mentors and peers.</p>
+          <Button asChild className="w-full h-11">
+            <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In Now</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const filteredUsers = usersList?.filter(u => 
     u.id !== user?.uid && 
@@ -115,6 +138,7 @@ function ChatContent() {
                 placeholder="Find a person..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                suppressHydrationWarning
               />
             </div>
           </div>
@@ -186,9 +210,9 @@ function ChatContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary"><Phone className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary"><Video className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary"><MoreVertical className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary" suppressHydrationWarning><Phone className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary" suppressHydrationWarning><Video className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary" suppressHydrationWarning><MoreVertical className="h-4 w-4" /></Button>
                 </div>
               </div>
 
@@ -214,7 +238,7 @@ function ChatContent() {
                                 "text-[10px] mt-1.5 font-medium opacity-60",
                                 isMe ? 'text-right' : 'text-left'
                               )}>
-                                {mounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
                           </div>
@@ -242,8 +266,9 @@ function ChatContent() {
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="Write a message..." 
                     className="bg-muted/30 h-11 border-none focus-visible:ring-2 focus-visible:ring-primary/10" 
+                    suppressHydrationWarning
                   />
-                  <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90 rounded-full shrink-0 h-11 w-11 shadow-md transition-all active:scale-95 disabled:opacity-50" disabled={!messageText.trim()}>
+                  <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90 rounded-full shrink-0 h-11 w-11 shadow-md transition-all active:scale-95 disabled:opacity-50" disabled={!messageText.trim()} suppressHydrationWarning>
                     <Send className="h-5 w-5" />
                   </Button>
                 </form>
