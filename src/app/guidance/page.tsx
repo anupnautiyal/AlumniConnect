@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,11 @@ function ReplySection({ requestId }: { requestId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [replyText, setReplyText] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -85,7 +91,7 @@ function ReplySection({ requestId }: { requestId: string }) {
                   </div>
                 </div>
                 <span className="text-[10px] text-muted-foreground">
-                  {new Date(reply.timestamp).toLocaleDateString()}
+                  {mounted ? new Date(reply.timestamp).toLocaleDateString() : '...'}
                 </span>
               </div>
               <p className="text-sm text-foreground/80 leading-relaxed">{reply.content}</p>
@@ -103,7 +109,7 @@ function ReplySection({ requestId }: { requestId: string }) {
           <Textarea 
             placeholder="Type your reply here..." 
             value={replyText}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setReplyText(e.target.value)}
             className="min-h-[100px] bg-card resize-none pr-12 focus-visible:ring-primary/20"
           />
           <Button 
@@ -127,6 +133,11 @@ export default function GuidancePage() {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -255,7 +266,7 @@ export default function GuidancePage() {
                       {q.category || "GENERAL"}
                     </Badge>
                     <span className="text-[10px] text-muted-foreground font-medium">
-                      {new Date(q.datePosted).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {mounted ? new Date(q.datePosted).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '...'}
                     </span>
                   </div>
                   <CardTitle 
@@ -329,7 +340,7 @@ export default function GuidancePage() {
                   <span className="text-xs font-bold">{selectedRequest.studentName}</span>
                   <span className="text-[10px] text-muted-foreground">•</span>
                   <span className="text-[10px] text-muted-foreground">
-                    Asked {new Date(selectedRequest.datePosted).toLocaleDateString()}
+                    Asked {mounted ? new Date(selectedRequest.datePosted).toLocaleDateString() : '...'}
                   </span>
                 </div>
               </DialogHeader>

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,10 +24,15 @@ export default function Home() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("All");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // User Profile
   const userDocRef = useMemoFirebase(() => {
@@ -72,7 +78,7 @@ export default function Home() {
       type: formData.get('type') as string,
       description: formData.get('description') as string,
       datePosted: new Date().toISOString(),
-      image: `https://picsum.photos/seed/${Math.random()}/800/400`
+      image: `https://picsum.photos/seed/${crypto.randomUUID()}/800/400`
     };
 
     addDocumentNonBlocking(collection(firestore, 'opportunities'), newOpp);
@@ -260,7 +266,7 @@ export default function Home() {
                     <div>
                       <p className="text-xs font-bold text-foreground">{opp.postedBy}</p>
                       <p className="text-[9px] text-muted-foreground flex items-center gap-1 uppercase font-black tracking-widest opacity-60">
-                        <Clock className="h-2 w-2" /> {new Date(opp.datePosted).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        <Clock className="h-2 w-2" /> {mounted ? new Date(opp.datePosted).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '...'}
                       </p>
                     </div>
                   </div>

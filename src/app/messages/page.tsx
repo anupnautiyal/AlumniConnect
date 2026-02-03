@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from "react"
@@ -21,6 +22,11 @@ function ChatContent() {
   const [activeRecipientId, setActiveRecipientId] = useState<string | null>(initialRecipientId);
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Update active recipient if URL param changes
   useEffect(() => {
@@ -88,7 +94,7 @@ function ChatContent() {
 
   const filteredUsers = usersList?.filter(u => 
     u.id !== user?.uid && 
-    (`${u.firstName} ${u.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()))
+    (`${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const recipientName = recipientData 
@@ -208,7 +214,7 @@ function ChatContent() {
                                 "text-[10px] mt-1.5 font-medium opacity-60",
                                 isMe ? 'text-right' : 'text-left'
                               )}>
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {mounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
                               </div>
                             </div>
                           </div>
