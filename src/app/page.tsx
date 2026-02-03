@@ -1,10 +1,14 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle } from "lucide-react"
+import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const MOCK_OPPORTUNITIES = [
   {
@@ -43,6 +47,18 @@ const MOCK_OPPORTUNITIES = [
 ]
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
+  const isMentor = userData?.role === 'mentor' || userData?.role === 'alumni';
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -50,9 +66,19 @@ export default function Home() {
           <h1 className="text-3xl font-bold tracking-tight mb-2">Opportunity Feed</h1>
           <p className="text-muted-foreground">Discover internships, referrals, and projects posted by your alumni network.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <PlusCircle className="mr-2 h-4 w-4" /> Post Opportunity
-        </Button>
+        
+        {isUserLoading || isUserDataLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Checking permissions...</span>
+          </div>
+        ) : (
+          isMentor && (
+            <Button className="bg-primary hover:bg-primary/90">
+              <PlusCircle className="mr-2 h-4 w-4" /> Post Opportunity
+            </Button>
+          )
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
