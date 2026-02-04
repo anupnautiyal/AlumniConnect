@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send, Users, MessageSquareQuote, Search, Filter, X } from "lucide-react";
+import { Briefcase, MapPin, Clock, PlusCircle, Share2, MessageCircle, Loader2, Send, Users, MessageSquareQuote, Search, Filter, X, Bookmark, BookmarkCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -62,6 +62,7 @@ export default function Home() {
   const { data: discussionsList } = useCollection(discussionsCountQuery);
 
   const isMentor = userData?.role === 'mentor' || userData?.role === 'alumni';
+  const bookmarks = userData?.bookmarkedOpportunities || [];
 
   const handlePostOpportunity = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,6 +89,22 @@ export default function Home() {
       description: "Your post is now live in the feed.",
     });
     setIsDialogOpen(false);
+  };
+
+  const toggleBookmark = (oppId: string) => {
+    if (!userDocRef || !userData) return;
+    
+    const isBookmarked = bookmarks.includes(oppId);
+    const newBookmarks = isBookmarked 
+      ? bookmarks.filter((id: string) => id !== oppId)
+      : [...bookmarks, oppId];
+
+    updateDocumentNonBlocking(userDocRef, { bookmarkedOpportunities: newBookmarks });
+    
+    toast({
+      title: isBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
+      description: isBookmarked ? "The opportunity has been removed from your list." : "You can find this in your profile now.",
+    });
   };
 
   const filteredOpportunities = opportunities?.filter(opp => {
@@ -180,7 +197,6 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Search and Filters */}
           <div className="bg-card p-4 rounded-2xl shadow-sm border space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -233,7 +249,22 @@ export default function Home() {
                     className="object-cover transition-transform duration-500 group-hover:scale-105" 
                     data-ai-hint="office tech"
                   />
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full shadow-md bg-white/80 hover:bg-white text-primary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleBookmark(opp.id);
+                      }}
+                    >
+                      {bookmarks.includes(opp.id) ? (
+                        <BookmarkCheck className="h-4 w-4 fill-primary" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
+                    </Button>
                     <Badge className={cn(
                       "font-bold shadow-md px-3 py-1 uppercase tracking-tighter text-[10px]",
                       opp.type === "Internship" ? "bg-secondary text-white" : 

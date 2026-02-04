@@ -8,14 +8,16 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { User, GraduationCap, Code, Briefcase, Edit2, LogOut, Loader2, Save, X, Plus } from "lucide-react"
-import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { User, GraduationCap, Code, Briefcase, Edit2, LogOut, Loader2, Save, X, Plus, Bookmark, MapPin, ArrowRight } from "lucide-react"
+import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth, useCollection } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from "@/lib/utils";
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -32,6 +34,13 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
+  // Fetch all opportunities to filter bookmarked ones
+  const opportunitiesRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'opportunities');
+  }, [firestore, user]);
+  const { data: allOpportunities } = useCollection(opportunitiesRef);
 
   const handleSignOut = async () => {
     try {
@@ -108,152 +117,216 @@ export default function ProfilePage() {
   const role = userData?.role || 'student';
   const fullName = userData ? `${userData.firstName} ${userData.lastName}` : 'User';
   const userSkills = userData?.skills || [];
+  const bookmarkedIds = userData?.bookmarkedOpportunities || [];
+  const bookmarkedOpps = allOpportunities?.filter(opp => bookmarkedIds.includes(opp.id)) || [];
 
   return (
     <div className="container mx-auto py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-          
-          <div className="w-full md:w-1/3 space-y-6">
-            <Card className="border-none shadow-md overflow-hidden text-center">
-              <div className="h-24 bg-primary" />
-              <CardHeader className="-mt-12">
-                <div className="mx-auto h-24 w-24 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary overflow-hidden shadow-lg relative">
-                  <User className="h-12 w-12" />
+      <div className="max-w-6xl mx-auto">
+        <Tabs defaultValue="overview" className="space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-6 rounded-3xl shadow-sm border">
+            <div className="flex items-center gap-6">
+              <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-primary border-4 border-background shadow-lg">
+                <User className="h-12 w-12" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold font-headline">{fullName}</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={cn(
+                    "uppercase text-[10px] tracking-widest",
+                    (role === 'mentor' || role === 'alumni') ? "bg-secondary" : "bg-primary"
+                  )}>
+                    {role}
+                  </Badge>
+                  <span className="text-muted-foreground text-sm font-medium">{userData?.major} • Class of {userData?.graduationYear}</span>
                 </div>
-                <CardTitle className="mt-4">{fullName}</CardTitle>
-                <CardDescription>{role === 'mentor' || role === 'alumni' ? 'Verified Mentor' : 'Student Member'}</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-6">
-                <Badge className={cn(
-                  "mb-4 uppercase",
-                  (role === 'mentor' || role === 'alumni') ? "bg-secondary" : "bg-primary"
-                )}>
-                  {role}
-                </Badge>
-                <p className="text-sm text-muted-foreground px-2">
-                  {userData?.bio || "No bio added yet. Tell people about yourself!"}
-                </p>
-              </CardContent>
-              <CardFooter className="border-t pt-4 flex flex-col gap-2">
-                <Button type="button" variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
-                  <Edit2 className="mr-2 h-4 w-4" /> {isEditing ? "Cancel Editing" : "Edit Profile"}
-                </Button>
-                <Button type="button" variant="destructive" className="w-full" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card className="border-none shadow-md">
-              <CardHeader>
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Code className="h-4 w-4 text-secondary" /> Technical Skills
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {userSkills.length > 0 ? (
-                    userSkills.map((s: string) => (
-                      <Badge key={s} variant="secondary" className="bg-muted text-xs flex items-center gap-1 group">
-                        {s}
-                        {isEditing && (
-                          <button onClick={() => handleRemoveSkill(s)} className="hover:text-destructive">
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">No skills listed yet.</p>
-                  )}
-                </div>
-                {isEditing && (
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Add a skill..." 
-                      value={newSkill} 
-                      onChange={(e) => setNewSkill(e.target.value)}
-                      className="h-8 text-xs"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
-                    />
-                    <Button size="icon" variant="secondary" className="h-8 w-8" onClick={handleAddSkill}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button variant="outline" className="flex-1 md:flex-none rounded-full" onClick={() => setIsEditing(!isEditing)}>
+                <Edit2 className="mr-2 h-4 w-4" /> Edit Profile
+              </Button>
+              <Button variant="destructive" className="flex-1 md:flex-none rounded-full" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" /> Sign Out
+              </Button>
+            </div>
           </div>
 
-          <div className="w-full md:w-2/3 space-y-6">
-            <form onSubmit={handleSaveProfile} className="space-y-6">
-              <Card className="border-none shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-headline">
-                    <GraduationCap className="h-5 w-5 text-primary" /> Personal Information
-                  </CardTitle>
-                  <CardDescription>Update your basic identity and background.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="major">Major / Field</Label>
-                      <Input id="major" name="major" defaultValue={userData?.major || "Computer Science"} disabled={!isEditing} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="graduationYear">Graduation Year</Label>
-                      <Input id="graduationYear" name="graduationYear" defaultValue={userData?.graduationYear || "2026"} disabled={!isEditing} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Professional Bio</Label>
-                    <Textarea 
-                      id="bio"
-                      name="bio"
-                      defaultValue={userData?.bio || "Tell us about your goals..."} 
-                      className="min-h-[100px]"
-                      disabled={!isEditing}
-                    />
-                  </div>
-                </CardContent>
-                {isEditing && (
-                  <CardFooter className="flex justify-end border-t pt-4">
-                    <Button type="submit" className="bg-primary">
-                      <Save className="mr-2 h-4 w-4" /> Save Changes
-                    </Button>
-                  </CardFooter>
-                )}
-              </Card>
-            </form>
+          <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0 space-x-8">
+            <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-4 px-0 font-bold text-base">Overview</TabsTrigger>
+            <TabsTrigger value="saved" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-4 px-0 font-bold text-base">
+              Saved Opportunities <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">{bookmarkedOpps.length}</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-            <Card className="border-none shadow-md">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline">
-                  <Briefcase className="h-5 w-5 text-primary" /> Career Interests
-                </CardTitle>
-                <CardDescription>Target industries and professional goals.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {["Open Source", "FinTech", "AI/ML", "DevOps", "Startups"].map(i => (
-                    <Badge key={i} className="bg-teal-500/10 text-teal-600 border-teal-200">
-                      {i}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          <TabsContent value="overview" className="mt-0 space-y-8 animate-in fade-in-50 duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-1 space-y-8">
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-headline flex items-center gap-2">
+                      <Code className="h-5 w-5 text-secondary" /> Expertise
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {userSkills.length > 0 ? (
+                        userSkills.map((s: string) => (
+                          <Badge key={s} variant="secondary" className="bg-muted text-xs flex items-center gap-1 group py-1 px-3">
+                            {s}
+                            {isEditing && (
+                              <button onClick={() => handleRemoveSkill(s)} className="hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No skills listed yet.</p>
+                      )}
+                    </div>
+                    {isEditing && (
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Add a skill..." 
+                          value={newSkill} 
+                          onChange={(e) => setNewSkill(e.target.value)}
+                          className="h-10 text-sm"
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                        />
+                        <Button size="icon" variant="secondary" onClick={handleAddSkill}>
+                          <Plus className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-headline flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" /> Career Interests
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {["Open Source", "FinTech", "AI/ML", "DevOps", "Startups"].map(i => (
+                        <Badge key={i} className="bg-teal-500/10 text-teal-600 border-none">
+                          {i}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="md:col-span-2 space-y-8">
+                <form onSubmit={handleSaveProfile}>
+                  <Card className="border-none shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 font-headline">
+                        <GraduationCap className="h-5 w-5 text-primary" /> Personal Information
+                      </CardTitle>
+                      <CardDescription>Public identity and academic background.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} required className="bg-muted/30" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required className="bg-muted/30" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="major">Major / Field</Label>
+                          <Input id="major" name="major" defaultValue={userData?.major || "Computer Science"} disabled={!isEditing} className="bg-muted/30" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="graduationYear">Graduation Year</Label>
+                          <Input id="graduationYear" name="graduationYear" defaultValue={userData?.graduationYear || "2026"} disabled={!isEditing} className="bg-muted/30" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Professional Bio</Label>
+                        <Textarea 
+                          id="bio"
+                          name="bio"
+                          defaultValue={userData?.bio || "Tell us about your goals..."} 
+                          className="min-h-[120px] bg-muted/30"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </CardContent>
+                    {isEditing && (
+                      <CardFooter className="flex justify-end border-t pt-6 bg-muted/10">
+                        <Button type="submit" className="bg-primary px-8 rounded-full">
+                          <Save className="mr-2 h-4 w-4" /> Save Changes
+                        </Button>
+                      </CardFooter>
+                    )}
+                  </Card>
+                </form>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="saved" className="mt-0 animate-in slide-in-from-bottom-4 duration-500">
+            {bookmarkedOpps.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {bookmarkedOpps.map((opp) => (
+                  <Card key={opp.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex flex-col sm:flex-row h-full">
+                      <div className="relative w-full sm:w-40 h-32 sm:h-auto">
+                        <Image 
+                          src={opp.image || `https://picsum.photos/seed/${opp.id}/400/300`} 
+                          alt={opp.title} 
+                          fill 
+                          className="object-cover" 
+                        />
+                        <div className="absolute top-2 left-2">
+                           <Badge className="bg-primary/90 text-white text-[9px] uppercase tracking-tighter">{opp.type}</Badge>
+                        </div>
+                      </div>
+                      <div className="flex-1 p-5 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-headline font-bold text-lg mb-1 leading-tight">{opp.title}</h3>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                            <span className="font-bold text-primary">{opp.company}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {opp.location}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/5 px-2" onClick={() => {
+                             const newBookmarks = bookmarkedIds.filter((id: string) => id !== opp.id);
+                             updateDocumentNonBlocking(userDocRef!, { bookmarkedOpportunities: newBookmarks });
+                             toast({ title: "Removed", description: "Opportunity removed from bookmarks." });
+                          }}>
+                            <X className="mr-1.5 h-3.5 w-3.5" /> Remove
+                          </Button>
+                          <Button size="sm" variant="default" className="rounded-full h-8 px-4" asChild>
+                            <Link href="/">View Feed <ArrowRight className="ml-1.5 h-3 w-3" /></Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed flex flex-col items-center">
+                <Bookmark className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
+                <h3 className="text-xl font-bold font-headline">No bookmarks yet</h3>
+                <p className="text-muted-foreground max-w-xs mx-auto mt-2">Opportunities you save from the feed will appear here for easy access.</p>
+                <Button variant="outline" className="mt-6 rounded-full" asChild>
+                  <Link href="/">Browse Opportunities</Link>
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

@@ -46,6 +46,13 @@
             "type": "string"
           },
           "description": "A list of professional or technical skills."
+        },
+        "bookmarkedOpportunities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of opportunities the user has saved."
         }
       },
       "required": [
