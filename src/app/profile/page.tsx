@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -193,6 +194,7 @@ export default function ProfilePage() {
                           onChange={(e) => setNewSkill(e.target.value)}
                           className="h-10 text-sm"
                           onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                          suppressHydrationWarning
                         />
                         <Button size="icon" variant="secondary" onClick={handleAddSkill}>
                           <Plus className="h-5 w-5" />
@@ -233,19 +235,19 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="firstName">First Name</Label>
-                          <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} required className="bg-muted/30" />
+                          <Input id="firstName" name="firstName" defaultValue={userData?.firstName} disabled={!isEditing} required className="bg-muted/30" suppressHydrationWarning />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="lastName">Last Name</Label>
-                          <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required className="bg-muted/30" />
+                          <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required className="bg-muted/30" suppressHydrationWarning />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="major">Major / Field</Label>
-                          <Input id="major" name="major" defaultValue={userData?.major || "Computer Science"} disabled={!isEditing} className="bg-muted/30" />
+                          <Input id="major" name="major" defaultValue={userData?.major || "Computer Science"} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="graduationYear">Graduation Year</Label>
-                          <Input id="graduationYear" name="graduationYear" defaultValue={userData?.graduationYear || "2026"} disabled={!isEditing} className="bg-muted/30" />
+                          <Input id="graduationYear" name="graduationYear" defaultValue={userData?.graduationYear || "2026"} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -300,8 +302,9 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex justify-between items-center mt-4 pt-4 border-t">
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/5 px-2" onClick={() => {
+                             if (!userDocRef) return;
                              const newBookmarks = bookmarkedIds.filter((id: string) => id !== opp.id);
-                             updateDocumentNonBlocking(userDocRef!, { bookmarkedOpportunities: newBookmarks });
+                             updateDocumentNonBlocking(userDocRef, { bookmarkedOpportunities: newBookmarks });
                              toast({ title: "Removed", description: "Opportunity removed from bookmarks." });
                           }}>
                             <X className="mr-1.5 h-3.5 w-3.5" /> Remove
