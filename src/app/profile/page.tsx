@@ -242,12 +242,12 @@ export default function ProfilePage() {
                           <Input id="lastName" name="lastName" defaultValue={userData?.lastName} disabled={!isEditing} required className="bg-muted/30" suppressHydrationWarning />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="major">Major / Field</Label>
-                          <Input id="major" name="major" defaultValue={userData?.major || "Computer Science"} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
+                          <Label htmlFor="major">Department</Label>
+                          <Input id="major" name="major" defaultValue={userData?.department || ""} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="graduationYear">Graduation Year</Label>
-                          <Input id="graduationYear" name="graduationYear" defaultValue={userData?.graduationYear || "2026"} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
+                          <Input id="graduationYear" name="graduationYear" defaultValue={userData?.gdy || ""} disabled={!isEditing} className="bg-muted/30" suppressHydrationWarning />
                         </div>
                       </div>
                       <div className="space-y-2">

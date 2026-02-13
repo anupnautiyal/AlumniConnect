@@ -21,6 +21,8 @@ export default function RegisterPage() {
     lastName: '',
     email: '',
     password: '',
+    department:'',
+    gdy:'',
     role: 'student' as 'student' | 'mentor'
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +51,8 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         email: formData.email,
         role: formData.role,
+        department: formData.department,
+        gdy: formData.gdy,
         createdAt: new Date().toISOString()
       });
 
@@ -120,7 +124,7 @@ export default function RegisterPage() {
                     )}
                   >
                     <Briefcase className="mb-3 h-6 w-6" />
-                    <span className="font-bold">Mentor</span>
+                    <span className="font-bold">Alumni</span>
                   </Label>
                 </div>
               </RadioGroup>
@@ -169,6 +173,26 @@ export default function RegisterPage() {
                 required 
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Department</Label>
+              <Input 
+                id="lastName"
+                placeholder="CMPN, IT, AIDS, ECS, EXTC, ETRX, AURO" 
+                required 
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Graduation Year</Label>
+              <Input 
+                id="lastName" 
+                placeholder="2024,2025..."
+                required 
+                value={formData.gdy}
+                onChange={(e) => setFormData({ ...formData, gdy: e.target.value })}
               />
             </div>
           </CardContent>

@@ -172,7 +172,7 @@ export default function Home() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Internship">Internship</SelectItem>
-                          <SelectItem value="Full-time">Full-time</SelectItem>
+                          <SelectItem value="Full-time">Jobs</SelectItem>
                           <SelectItem value="Referral">Referral</SelectItem>
                           <SelectItem value="Project">Project</SelectItem>
                         </SelectContent>
