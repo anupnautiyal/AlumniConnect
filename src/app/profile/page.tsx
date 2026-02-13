@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,6 +43,13 @@ export default function ProfilePage() {
   }, [firestore, user]);
   const { data: allOpportunities } = useCollection(opportunitiesRef);
 
+  // Redirect to login if not authenticated (must be before any conditional returns)
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -74,7 +81,7 @@ export default function ProfilePage() {
     };
 
     updateDocumentNonBlocking(userDocRef, updates);
-    
+
     toast({
       title: "Profile updated",
       description: "Your changes have been saved successfully.",
@@ -86,7 +93,7 @@ export default function ProfilePage() {
     if (!newSkill.trim() || !userDocRef || !userData) return;
     const currentSkills = userData.skills || [];
     if (currentSkills.includes(newSkill.trim())) return;
-    
+
     updateDocumentNonBlocking(userDocRef, {
       skills: [...currentSkills, newSkill.trim()]
     });
@@ -111,7 +118,6 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    router.push('/login');
     return null;
   }
 
@@ -188,9 +194,9 @@ export default function ProfilePage() {
                     </div>
                     {isEditing && (
                       <div className="flex gap-2">
-                        <Input 
-                          placeholder="Add a skill..." 
-                          value={newSkill} 
+                        <Input
+                          placeholder="Add a skill..."
+                          value={newSkill}
                           onChange={(e) => setNewSkill(e.target.value)}
                           className="h-10 text-sm"
                           onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
@@ -252,10 +258,10 @@ export default function ProfilePage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="bio">Professional Bio</Label>
-                        <Textarea 
+                        <Textarea
                           id="bio"
                           name="bio"
-                          defaultValue={userData?.bio || "Tell us about your goals..."} 
+                          defaultValue={userData?.bio || "Tell us about your goals..."}
                           className="min-h-[120px] bg-muted/30"
                           disabled={!isEditing}
                         />
@@ -281,14 +287,14 @@ export default function ProfilePage() {
                   <Card key={opp.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group">
                     <div className="flex flex-col sm:flex-row h-full">
                       <div className="relative w-full sm:w-40 h-32 sm:h-auto">
-                        <Image 
-                          src={opp.image || `https://picsum.photos/seed/${opp.id}/400/300`} 
-                          alt={opp.title} 
-                          fill 
-                          className="object-cover" 
+                        <Image
+                          src={opp.image || `https://picsum.photos/seed/${opp.id}/400/300`}
+                          alt={opp.title}
+                          fill
+                          className="object-cover"
                         />
                         <div className="absolute top-2 left-2">
-                           <Badge className="bg-primary/90 text-white text-[9px] uppercase tracking-tighter">{opp.type}</Badge>
+                          <Badge className="bg-primary/90 text-white text-[9px] uppercase tracking-tighter">{opp.type}</Badge>
                         </div>
                       </div>
                       <div className="flex-1 p-5 flex flex-col justify-between">
@@ -302,10 +308,10 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex justify-between items-center mt-4 pt-4 border-t">
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/5 px-2" onClick={() => {
-                             if (!userDocRef) return;
-                             const newBookmarks = bookmarkedIds.filter((id: string) => id !== opp.id);
-                             updateDocumentNonBlocking(userDocRef, { bookmarkedOpportunities: newBookmarks });
-                             toast({ title: "Removed", description: "Opportunity removed from bookmarks." });
+                            if (!userDocRef) return;
+                            const newBookmarks = bookmarkedIds.filter((id: string) => id !== opp.id);
+                            updateDocumentNonBlocking(userDocRef, { bookmarkedOpportunities: newBookmarks });
+                            toast({ title: "Removed", description: "Opportunity removed from bookmarks." });
                           }}>
                             <X className="mr-1.5 h-3.5 w-3.5" /> Remove
                           </Button>

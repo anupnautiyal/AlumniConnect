@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useRef } from "react"
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Send, Phone, Video, MoreVertical, Loader2, MessageSquare, LogIn } from "lucide-react"
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit, getDocs } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -18,11 +18,12 @@ function ChatContent() {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const initialRecipientId = searchParams.get('recipientId');
-  
+
   const [activeRecipientId, setActiveRecipientId] = useState<string | null>(initialRecipientId);
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [mounted, setMounted] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -43,8 +44,8 @@ function ChatContent() {
   const { data: recipientData } = useDoc(recipientDocRef);
 
   // Derive conversation ID
-  const conversationId = activeRecipientId && user 
-    ? [user.uid, activeRecipientId].sort().join('_') 
+  const conversationId = activeRecipientId && user
+    ? [user.uid, activeRecipientId].sort().join('_')
     : null;
 
   // Messages in current conversation
@@ -58,12 +59,66 @@ function ChatContent() {
   }, [firestore, conversationId, user]);
   const { data: messages, isLoading: isMessagesLoading } = useCollection(messagesQuery);
 
-  // Users for Sidebar
-  const usersQuery = useMemoFirebase(() => {
+  // Auto-scroll to bottom only when new messages are added
+  const prevMessageCountRef = useRef<number>(0);
+  useEffect(() => {
+    const currentCount = messages?.length || 0;
+    if (currentCount > prevMessageCountRef.current && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessageCountRef.current = currentCount;
+  }, [messages]);
+
+  // Get all users first
+  const allUsersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'users'), limit(50));
+    return query(collection(firestore, 'users'), limit(100));
   }, [firestore, user]);
-  const { data: usersList, isLoading: isUsersLoading } = useCollection(usersQuery);
+  const { data: allUsers, isLoading: isAllUsersLoading } = useCollection(allUsersQuery);
+
+  // Filter users to only those with conversations
+  const [usersWithConversations, setUsersWithConversations] = useState<any[]>([]);
+  const [isFilteringUsers, setIsFilteringUsers] = useState(false);
+
+  useEffect(() => {
+    if (!allUsers || !user || !firestore) {
+      setUsersWithConversations([]);
+      return;
+    }
+
+    setIsFilteringUsers(true);
+
+    // Check each user for conversation existence
+    const checkConversations = async () => {
+      const usersWithMessages: any[] = [];
+
+      for (const otherUser of allUsers) {
+        if (otherUser.id === user.uid) continue;
+
+        const conversationId = [user.uid, otherUser.id].sort().join('_');
+        const messagesRef = collection(firestore, 'conversations', conversationId, 'messages');
+        const messagesQuery = query(messagesRef, limit(1));
+
+        try {
+          const snapshot = await getDocs(messagesQuery);
+          if (!snapshot.empty) {
+            usersWithMessages.push(otherUser);
+          }
+        } catch (error) {
+          // Skip users we can't check
+          console.error(`Error checking conversation with ${otherUser.id}:`, error);
+        }
+      }
+
+      setUsersWithConversations(usersWithMessages);
+      setIsFilteringUsers(false);
+    };
+
+    checkConversations();
+  }, [allUsers, user, firestore]);
+
+  const usersList = usersWithConversations;
+  const isUsersLoading = isAllUsersLoading || isFilteringUsers;
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +133,7 @@ function ChatContent() {
     };
 
     addDocumentNonBlocking(
-      collection(firestore, 'conversations', conversationId, 'messages'), 
+      collection(firestore, 'conversations', conversationId, 'messages'),
       newMessage
     );
 
@@ -115,12 +170,12 @@ function ChatContent() {
     );
   }
 
-  const filteredUsers = usersList?.filter(u => 
-    u.id !== user?.uid && 
+  const filteredUsers = usersList?.filter(u =>
+    u.id !== user?.uid &&
     (`${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const recipientName = recipientData 
+  const recipientName = recipientData
     ? `${recipientData.firstName || ''} ${recipientData.lastName || ''}`.trim() || "User"
     : "Select a Contact";
 
@@ -133,9 +188,9 @@ function ChatContent() {
             <h2 className="text-xl font-bold mb-4 font-headline text-primary">Messages</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                className="pl-9 bg-card border-none ring-1 ring-border focus-visible:ring-primary/20" 
-                placeholder="Find a person..." 
+              <Input
+                className="pl-9 bg-card border-none ring-1 ring-border focus-visible:ring-primary/20"
+                placeholder="Find a person..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 suppressHydrationWarning
@@ -148,8 +203,8 @@ function ChatContent() {
             ) : (
               <div className="divide-y divide-border/50">
                 {filteredUsers?.map((person) => (
-                  <div 
-                    key={person.id} 
+                  <div
+                    key={person.id}
                     onClick={() => setActiveRecipientId(person.id)}
                     className={cn(
                       "p-4 hover:bg-muted/50 cursor-pointer transition-all relative group",
@@ -217,7 +272,7 @@ function ChatContent() {
               </div>
 
               {/* Chat Messages */}
-              <ScrollArea className="flex-1 p-6 bg-muted/5">
+              <ScrollArea className="flex-1 p-6 bg-muted/5 max-h-[calc(100vh-280px)]">
                 {isMessagesLoading ? (
                   <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary/20" /></div>
                 ) : (
@@ -229,8 +284,8 @@ function ChatContent() {
                           <div key={msg.id} className={cn("flex", isMe ? 'justify-end' : 'justify-start')}>
                             <div className={cn(
                               "max-w-[75%] p-3 px-4 rounded-2xl text-sm shadow-sm transition-all",
-                              isMe 
-                                ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                              isMe
+                                ? 'bg-primary text-primary-foreground rounded-tr-none'
                                 : 'bg-white border text-foreground rounded-tl-none'
                             )}>
                               {msg.message}
@@ -254,6 +309,7 @@ function ChatContent() {
                         </p>
                       </div>
                     )}
+                    <div ref={messagesEndRef} />
                   </div>
                 )}
               </ScrollArea>
@@ -261,11 +317,11 @@ function ChatContent() {
               {/* Chat Input */}
               <div className="p-4 border-t bg-card">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2 max-w-4xl mx-auto">
-                  <Input 
+                  <Input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Write a message..." 
-                    className="bg-muted/30 h-11 border-none focus-visible:ring-2 focus-visible:ring-primary/10" 
+                    placeholder="Write a message..."
+                    className="bg-muted/30 h-11 border-none focus-visible:ring-2 focus-visible:ring-primary/10"
                     suppressHydrationWarning
                   />
                   <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90 rounded-full shrink-0 h-11 w-11 shadow-md transition-all active:scale-95 disabled:opacity-50" disabled={!messageText.trim()} suppressHydrationWarning>
